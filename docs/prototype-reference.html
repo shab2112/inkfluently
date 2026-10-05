@@ -1,0 +1,2294 @@
+<title>Daily Dictée</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#f2f4ee;
+    --paper-2:#e7ebe0;
+    --paper-3:#dde3d5;
+    --rule:#cdd4c3;
+    --ink:#1f2a22;
+    --ink-soft:#57645b;
+    --ink-faint:#8a968c;
+    --accent:#bd4416;
+    --accent-ink:#ffffff;
+    --accent-soft:#f2ddd0;
+    --good:#2c6b4d;
+    --good-soft:#dbe8de;
+    --gold:#a8730f;
+    --gold-soft:#f1e2bf;
+    --danger:#a3311a;
+    --shadow: 0 1px 2px rgba(31,42,34,0.06), 0 6px 18px rgba(31,42,34,0.07);
+    --series-legibility:#2a78d6;
+    --series-speed:#eb6834;
+    --series-accuracy:#1baf7a;
+    --chart-grid:#e1e0d9;
+    --chart-axis:#c3c2b7;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#171b16;
+      --paper-2:#1f2420;
+      --paper-3:#272d27;
+      --rule:#333c32;
+      --ink:#edf1e9;
+      --ink-soft:#a9b5a2;
+      --ink-faint:#6f7a6a;
+      --accent:#ff8552;
+      --accent-ink:#241205;
+      --accent-soft:#3a2416;
+      --good:#63cd97;
+      --good-soft:#193526;
+      --gold:#e4b23f;
+      --gold-soft:#332a12;
+      --danger:#ff6b52;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 22px rgba(0,0,0,0.35);
+      --series-legibility:#3987e5;
+      --series-speed:#d95926;
+      --series-accuracy:#199e70;
+      --chart-grid:#2c2c2a;
+      --chart-axis:#383835;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#171b16;
+    --paper-2:#1f2420;
+    --paper-3:#272d27;
+    --rule:#333c32;
+    --ink:#edf1e9;
+    --ink-soft:#a9b5a2;
+    --ink-faint:#6f7a6a;
+    --accent:#ff8552;
+    --accent-ink:#241205;
+    --accent-soft:#3a2416;
+    --good:#63cd97;
+    --good-soft:#193526;
+    --gold:#e4b23f;
+    --gold-soft:#332a12;
+    --danger:#ff6b52;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 22px rgba(0,0,0,0.35);
+    --series-legibility:#3987e5;
+    --series-speed:#d95926;
+    --series-accuracy:#199e70;
+    --chart-grid:#2c2c2a;
+    --chart-axis:#383835;
+    color-scheme: dark;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:"Fraunces", Georgia, serif; text-wrap:balance; margin:0; }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+  button{ font-family:inherit; }
+  [hidden]{ display:none !important; }
+
+  #app{ min-height:100%; }
+
+  /* ---------- HOME VIEW ---------- */
+  #view-home{
+    max-width:640px;
+    margin:0 auto;
+    padding:28px 18px 64px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+  .brandbar{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .brandbar h1{ font-size:26px; font-weight:700; letter-spacing:-0.01em; }
+  .brandbar h1 em{ font-style:italic; font-weight:500; color:var(--accent); }
+  .greeting{ font-size:13px; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+  .greeting button{
+    border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:12px;
+    text-decoration:underline; padding:2px;
+  }
+
+  .stampcard{
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    border-radius:18px;
+    padding:20px 20px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .stampcard::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(var(--rule) 0 1px, transparent 1px 28px);
+    opacity:0.35;
+    pointer-events:none;
+  }
+  .flame{
+    font-size:34px;
+    width:64px; height:64px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    background:var(--gold-soft);
+    flex:none;
+    position:relative;
+    z-index:1;
+  }
+  .stamp-num{ font-size:34px; font-weight:700; font-family:"Fraunces",serif; line-height:1; }
+  .stamp-label{ font-size:12.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.06em; margin-top:4px;}
+  .stampstats{ position:relative; z-index:1; flex:1; display:flex; gap:22px; flex-wrap:wrap; }
+
+  .card{
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    border-radius:18px;
+    padding:20px;
+    box-shadow:var(--shadow);
+  }
+  .card h2{ font-size:19px; margin-bottom:4px; }
+  .card .sub{ font-size:13px; color:var(--ink-soft); margin-bottom:16px; }
+
+  .seg{
+    display:flex;
+    background:var(--paper-3);
+    border-radius:12px;
+    padding:4px;
+    gap:4px;
+  }
+  .seg button{
+    flex:1;
+    border:none;
+    background:transparent;
+    color:var(--ink-soft);
+    padding:9px 6px;
+    border-radius:9px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+  }
+  .seg button.active{ background:var(--paper); color:var(--ink); box-shadow:var(--shadow); }
+
+  .rowgap{ display:flex; flex-direction:column; gap:14px; }
+
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; font-size:14px;
+  }
+  .switch{
+    width:42px; height:24px; border-radius:99px; background:var(--paper-3);
+    position:relative; cursor:pointer; flex:none; border:1px solid var(--rule);
+    padding:0; appearance:none; -webkit-appearance:none; font:inherit; outline-offset:2px;
+  }
+  .switch::after{
+    content:""; position:absolute; top:2px; left:2px; width:18px; height:18px;
+    border-radius:50%; background:var(--ink-faint); transition:transform .15s ease, background .15s ease;
+  }
+  .switch.on{ background:var(--accent-soft); border-color:var(--accent); }
+  .switch.on::after{ transform:translateX(18px); background:var(--accent); }
+
+  textarea{
+    width:100%; min-height:88px; resize:vertical;
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    padding:10px 12px; color:var(--ink); font-family:inherit; font-size:14px;
+  }
+  textarea:focus, input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  .passage-preview{
+    font-size:12.5px; color:var(--ink-soft); background:var(--paper);
+    border:1px dashed var(--rule); border-radius:10px; padding:10px 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .passage-preview button{
+    border:none; background:none; cursor:pointer; color:var(--accent); font-size:13px; font-weight:600;
+    display:flex; align-items:center; gap:4px; white-space:nowrap;
+  }
+
+  .btn{
+    border:none; border-radius:12px; padding:14px 18px; font-size:15px; font-weight:700;
+    cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); width:100%; box-shadow:var(--shadow); }
+  .btn-primary:active{ transform:translateY(1px); }
+  .btn-ghost{ background:var(--paper-3); color:var(--ink); }
+  .btn-outline{ background:transparent; border:1.5px solid var(--rule); color:var(--ink); }
+  .btn-danger-outline{ background:transparent; border:1.5px solid var(--danger); color:var(--danger); }
+  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
+
+  .history-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .heat{ display:grid; grid-template-columns:repeat(14,1fr); gap:5px; margin-bottom:16px; }
+  .heat i{
+    aspect-ratio:1; border-radius:4px; background:var(--paper-3); display:block; position:relative;
+    border:1px solid var(--rule);
+  }
+  .heat i.done{ background:var(--good); border-color:var(--good); }
+  .heat i.today{ box-shadow:0 0 0 2px var(--accent); }
+
+  .log{ display:flex; flex-direction:column; gap:10px; }
+  .log-empty{ font-size:13.5px; color:var(--ink-faint); padding:10px 2px; }
+  .log-row{
+    display:flex; align-items:center; gap:12px;
+    padding:10px; border-radius:12px; background:var(--paper);
+    border:1px solid var(--rule);
+  }
+  .log-thumb{
+    width:52px; height:52px; border-radius:8px; object-fit:cover; flex:none;
+    background:var(--paper-3); border:1px solid var(--rule); cursor:pointer;
+  }
+  .log-thumb.placeholder{ display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .log-main{ flex:1; min-width:0; }
+  .log-date{ font-size:13px; font-weight:600; }
+  .log-topic{ font-size:12.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .log-badge{
+    font-size:11px; font-weight:700; padding:3px 8px; border-radius:99px;
+    background:var(--good-soft); color:var(--good); white-space:nowrap;
+  }
+  .log-badge.local{ background:var(--gold-soft); color:var(--gold); }
+  .log-actions{ display:flex; align-items:center; gap:6px; flex:none; }
+  .log-del-btn{
+    border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:15px;
+    padding:4px 6px; border-radius:6px; line-height:1;
+  }
+  .log-del-btn:hover, .log-del-btn:focus-visible{ color:var(--danger); background:var(--accent-soft); }
+  .log-confirm{ display:flex; align-items:center; gap:6px; }
+  .log-confirm button{
+    font-size:11px; font-weight:700; border-radius:7px; padding:4px 8px; cursor:pointer; border:1px solid var(--rule);
+    background:var(--paper);
+  }
+  .log-confirm .yes{ color:var(--danger); border-color:var(--danger); }
+
+  .footnote{ font-size:12px; color:var(--ink-faint); text-align:center; line-height:1.5; padding:0 8px; }
+  .storage-warning{
+    font-size:12.5px; color:var(--danger); background:var(--accent-soft); border:1px solid var(--danger);
+    border-radius:12px; padding:10px 14px; line-height:1.5;
+  }
+
+  .stepper{ display:flex; align-items:center; gap:10px; }
+  .stepper button{
+    width:32px; height:32px; border-radius:9px; border:1px solid var(--rule); background:var(--paper-3);
+    color:var(--ink); font-size:16px; font-weight:700; cursor:pointer; flex:none;
+  }
+  .stepper button:disabled{ opacity:0.4; cursor:not-allowed; }
+  .stepper-val{ font-family:"IBM Plex Mono",monospace; font-size:15px; font-weight:600; min-width:32px; text-align:center; }
+  .stepper-label{ font-size:13px; color:var(--ink-soft); flex:1; }
+
+  .link-btn{
+    border:none; background:none; color:var(--accent); font-size:13px; font-weight:700; cursor:pointer;
+    padding:2px; text-decoration:underline;
+  }
+  .dash-btn{
+    display:inline-flex; align-items:center; gap:6px; border:1px solid var(--rule); background:var(--paper-2);
+    color:var(--ink); font-size:13px; font-weight:600; padding:8px 14px; border-radius:99px; cursor:pointer;
+  }
+
+  .privacy-note{
+    font-size:11.5px; color:var(--ink-faint); background:var(--paper); border:1px dashed var(--rule);
+    border-radius:10px; padding:8px 12px; line-height:1.5; margin-top:8px;
+  }
+  .first-run-hint{ font-size:11.5px; color:var(--ink-faint); text-align:center; margin-top:6px; }
+
+  .day-tag{
+    font-size:10.5px; font-weight:700; color:var(--ink-faint); background:var(--paper-3);
+    border-radius:99px; padding:1px 7px; margin-left:6px;
+  }
+
+  /* ---------- DASHBOARD ---------- */
+  #view-dashboard{
+    max-width:640px; margin:0 auto; padding:28px 18px 64px;
+    display:flex; flex-direction:column; gap:18px;
+  }
+  .dash-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .dash-stats{ display:flex; gap:12px; flex-wrap:wrap; }
+  .dash-stat{
+    flex:1; min-width:110px; background:var(--paper-2); border:1px solid var(--rule); border-radius:14px;
+    padding:14px 16px;
+  }
+  .dash-stat .v{ font-family:"Fraunces",serif; font-size:26px; font-weight:700; }
+  .dash-stat .l{ font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
+  .chart-card{ background:var(--paper-2); border:1px solid var(--rule); border-radius:16px; padding:16px 16px 10px; }
+  .chart-card h3{ font-size:14px; font-weight:700; margin-bottom:2px; }
+  .chart-card .avg{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
+  .chart-svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .chart-empty{ font-size:13px; color:var(--ink-faint); padding:20px 0; text-align:center; }
+  .chart-tip{
+    position:absolute; pointer-events:none; background:var(--ink); color:var(--paper);
+    font-size:11px; padding:4px 8px; border-radius:6px; transform:translate(-50%,-130%); white-space:nowrap;
+    opacity:0; transition:opacity .1s;
+  }
+  .chart-wrap{ position:relative; }
+  .table-toggle{ font-size:11.5px; color:var(--ink-faint); text-decoration:underline; cursor:pointer; background:none; border:none; padding:0; margin-top:6px; }
+  .chart-table{ width:100%; border-collapse:collapse; font-size:11.5px; margin-top:8px; }
+  .chart-table th, .chart-table td{ text-align:left; padding:4px 6px; border-bottom:1px solid var(--rule); }
+  .chart-table th{ color:var(--ink-soft); font-weight:600; }
+
+  /* ---------- PRACTICE VIEW ---------- */
+  #view-practice, #view-finish, #view-dashboard{
+    position:fixed; inset:0;
+    background:var(--paper);
+    display:flex; flex-direction:column;
+    padding: calc(env(safe-area-inset-top,0px) + 18px) 20px calc(env(safe-area-inset-bottom,0px) + 20px);
+    overflow-y:auto;
+  }
+  #view-dashboard{ max-width:640px; margin:0 auto; gap:16px; }
+  .practice-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .exit-btn{
+    border:none; background:var(--paper-2); color:var(--ink-soft); width:36px; height:36px;
+    border-radius:50%; cursor:pointer; font-size:16px; flex:none; border:1px solid var(--rule);
+  }
+  .topic-chip{
+    font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft);
+    background:var(--paper-2); border:1px solid var(--rule); padding:6px 12px; border-radius:99px;
+  }
+
+  .ringwrap{ display:flex; justify-content:center; margin:22px 0 6px; }
+  .ring{ position:relative; width:172px; height:172px; }
+  .ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring circle{ fill:none; stroke-width:10; }
+  .ring .track{ stroke:var(--paper-3); }
+  .ring .prog{ stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .3s linear; }
+  .ring-label{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .ring-time{ font-size:30px; font-weight:600; }
+  .ring-sub{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
+  .ring.over .prog{ stroke:var(--gold); }
+
+  .dots{ display:flex; justify-content:center; gap:7px; margin:16px 0 4px; flex-wrap:wrap; }
+  .dots i{ width:9px; height:9px; border-radius:50%; background:var(--paper-3); border:1px solid var(--rule); display:block; }
+  .dots i.done{ background:var(--good); border-color:var(--good); }
+  .dots i.current{ background:var(--accent); border-color:var(--accent); transform:scale(1.25); }
+  .dots i.sentence-end{ margin-right:8px; }
+
+  .sentence-stage{
+    flex:1; display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:18px 6px; min-height:120px;
+  }
+  .sentence-hint{ font-size:14px; color:var(--ink-faint); max-width:340px; }
+  .sentence-hint b{ color:var(--ink-soft); }
+
+  .timesup-banner{
+    background:var(--gold-soft); color:var(--gold); border-radius:12px; padding:10px 14px;
+    font-size:13.5px; font-weight:600; text-align:center; margin-bottom:6px;
+  }
+
+  .speed-row{ display:flex; justify-content:center; gap:8px; margin-bottom:14px; }
+  .speed-row button{
+    border:1.5px solid var(--rule); background:var(--paper-2); color:var(--ink-soft);
+    padding:6px 14px; border-radius:99px; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .speed-row button.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+
+  .controls{ display:flex; flex-direction:column; gap:10px; padding-bottom:6px; }
+  .controls-row{ display:flex; gap:10px; }
+  .controls-row .btn{ flex:1; }
+  .btn-listen{ background:var(--ink); color:var(--paper); }
+  .punct-cue{
+    display:block; width:100%; text-align:center; padding:6px 14px; border-radius:99px;
+    font-size:12.5px; font-weight:600; background:var(--accent-soft); color:var(--accent);
+  }
+
+  .finish-scroll{ max-width:480px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:18px; }
+  .photo-drop{
+    border:2px dashed var(--rule); border-radius:16px; padding:26px 16px; text-align:center;
+    cursor:pointer; background:var(--paper-2);
+  }
+  .photo-drop svg{ margin-bottom:8px; }
+  .photo-drop .t1{ font-weight:600; font-size:14.5px; }
+  .photo-drop .t2{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .photo-preview{ width:100%; border-radius:14px; display:block; border:1px solid var(--rule); }
+  .photo-ready-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-top:8px; font-size:12.5px;
+  }
+  #photoReadyLabel{ color:var(--good); font-weight:700; }
+  #retakeBtn{
+    border:none; background:none; color:var(--ink-soft); text-decoration:underline;
+    cursor:pointer; font-size:12.5px; padding:2px;
+  }
+  .saved-panel{
+    display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
+    background:var(--good-soft); border:1px solid var(--good); border-radius:16px; padding:26px 18px;
+  }
+  .saved-check{
+    width:44px; height:44px; border-radius:50%; background:var(--good); color:var(--paper);
+    display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; margin-bottom:4px;
+  }
+  .saved-title{ font-family:"Fraunces",serif; font-size:20px; font-weight:700; color:var(--good); }
+  .saved-sub{ font-size:13px; color:var(--ink-soft); margin-bottom:10px; }
+  .legibility-box{
+    width:100%; text-align:left; background:var(--paper); border:1px solid var(--rule);
+    border-radius:12px; padding:12px 14px; margin-bottom:14px;
+  }
+  .legibility-head{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--ink); }
+  .legibility-score{
+    font-family:"IBM Plex Mono",monospace; font-weight:600; background:var(--gold-soft); color:var(--gold);
+    border-radius:99px; padding:2px 9px; font-size:12px;
+  }
+  .legibility-score:empty{ display:none; }
+  .legibility-score.accuracy{ background:var(--good-soft); color:var(--good); }
+  .legibility-text{ font-size:12.5px; color:var(--ink-soft); margin-top:6px; line-height:1.5; }
+  .error-list{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .error-list li{
+    font-size:12px; background:var(--paper-2); border:1px solid var(--rule); border-radius:8px;
+    padding:6px 9px; display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;
+  }
+  .error-list .etype{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--danger);
+    flex:none;
+  }
+  .error-list .eword{ color:var(--ink-soft); }
+  .error-list .eword b{ color:var(--ink); font-weight:600; text-decoration:line-through; text-decoration-color:var(--danger); }
+
+  .dim-list{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:5px; }
+  .dim-list li{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px;
+    padding:2px 0;
+  }
+  .dim-list .dname{ color:var(--ink-soft); }
+  .dim-list .dflag{
+    font-size:10.5px; font-weight:700; border-radius:99px; padding:2px 9px; white-space:nowrap;
+  }
+  .dim-list .dflag.good{ background:var(--good-soft); color:var(--good); }
+  .dim-list .dflag.needs{ background:var(--gold-soft); color:var(--gold); }
+  .dim-note{ font-size:11px; color:var(--ink-faint); margin:-2px 0 2px; }
+
+  .focus-card{
+    background:var(--accent-soft); border:1px solid var(--accent); border-radius:14px;
+    padding:12px 14px; display:flex; flex-direction:column; gap:2px;
+  }
+  .focus-card .flabel{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); }
+  .focus-card .ftext{ font-size:13px; color:var(--ink); line-height:1.5; }
+
+  .progress-cols{ display:flex; gap:14px; }
+  .progress-col{ flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .progress-date{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint); }
+  .progress-photo{
+    width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:12px; border:1px solid var(--rule);
+    background:var(--paper-3);
+  }
+  .progress-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .progress-chips span{
+    font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:600; border-radius:99px; padding:2px 8px;
+    background:var(--paper-3); color:var(--ink-soft);
+  }
+  .progress-nav{ display:flex; justify-content:space-between; gap:6px; }
+  .error-list .earrow{ color:var(--ink-faint); }
+  #legibilityLabel.pulsing{ opacity:0.6; animation:pulse 1.3s ease-in-out infinite; }
+  @keyframes pulse{ 50%{ opacity:1; } }
+  .field label{ font-size:13px; font-weight:600; display:block; margin-bottom:6px; }
+  input[type=text]{
+    width:100%; background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    padding:10px 12px; color:var(--ink); font-size:14px;
+  }
+  .sync-note{ font-size:12px; color:var(--ink-faint); text-align:center; }
+
+  /* ---------- LIGHTBOX ---------- */
+  #lightbox{
+    position:fixed; inset:0; background:rgba(10,12,10,0.86); z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  #lightbox img{ max-width:100%; max-height:82vh; border-radius:10px; }
+  #lightbox button{
+    position:absolute; top:calc(env(safe-area-inset-top,0px) + 16px); right:16px;
+    width:38px; height:38px; border-radius:50%; border:none; background:rgba(255,255,255,0.15);
+    color:#fff; font-size:18px; cursor:pointer;
+  }
+  #lightbox .lb-cap{ position:absolute; bottom:calc(env(safe-area-inset-bottom,0px) + 20px); color:#e8ece4; font-size:13px; text-align:center; left:0; right:0; }
+
+  @media (max-width:420px){
+    .stampcard{ flex-direction:column; align-items:flex-start; }
+    .heat{ grid-template-columns:repeat(10,1fr); }
+  }
+</style>
+
+<div id="app">
+  <!-- ============ HOME ============ -->
+  <div id="view-home">
+    <div class="brandbar">
+      <h1>Daily <em>Dictée</em></h1>
+      <div class="greeting" id="greetingRow">
+        <span id="greetingText">Hi there</span>
+        <button id="editNameBtn" type="button">edit name</button>
+      </div>
+    </div>
+
+    <div class="stampcard">
+      <div class="flame" id="flameIcon">🔥</div>
+      <div class="stampstats">
+        <div>
+          <div class="stamp-num" id="streakNum">0</div>
+          <div class="stamp-label">Day streak</div>
+        </div>
+        <div>
+          <div class="stamp-num" id="bestNum">0</div>
+          <div class="stamp-label">Best streak</div>
+        </div>
+        <div>
+          <div class="stamp-num" id="totalNum">0</div>
+          <div class="stamp-label">Total sessions</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="dash-btn" id="openDashBtn" type="button">📊 View trends</button>
+      <button class="dash-btn" id="openProgressBtn" type="button">🖼️ Before &amp; after</button>
+    </div>
+
+    <div id="focusCard" class="focus-card" hidden>
+      <div class="flabel">🎯 This week's focus</div>
+      <div class="ftext" id="focusText"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="startHeading">Start today's practice</h2>
+      <div class="sub" id="adaptiveNote" style="margin-top:-8px;margin-bottom:12px;" hidden></div>
+      <div class="sub" id="startSub">Pick a length, then press play — a passage will be read aloud for you to write.</div>
+      <div class="rowgap">
+        <div class="seg" id="lenSeg">
+          <button data-min="10">10 min</button>
+          <button data-min="12" class="active">12 min</button>
+          <button data-min="15">15 min</button>
+        </div>
+
+        <div class="passage-preview">
+          <span id="passageTopicLabel">Topic: Space &amp; astronomy</span>
+          <button id="shuffleBtn" type="button">🔀 Shuffle</button>
+        </div>
+
+        <div class="toggle-row">
+          <span id="customToggleLabel">✏️ Use my own passage instead</span>
+          <button type="button" class="switch" id="customToggle" role="switch" aria-checked="false" aria-labelledby="customToggleLabel"></button>
+        </div>
+        <textarea id="customText" placeholder="Paste or type the passage you want read aloud…" hidden></textarea>
+
+        <div class="toggle-row">
+          <span id="punctToggleLabel">🔤 Announce punctuation (classic dictée style)</span>
+          <button type="button" class="switch" id="punctToggle" role="switch" aria-checked="false" aria-labelledby="punctToggleLabel"></button>
+        </div>
+
+        <div class="toggle-row" id="voiceRow" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <span id="voiceSelectLabel">🗣️ Reading voice</span>
+          <select id="voiceSelect" style="width:100%;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;color:var(--ink);font-family:inherit;font-size:14px;"></select>
+        </div>
+
+        <div class="stepper">
+          <span class="stepper-label" id="spdLabel">Sessions per day (target)</span>
+          <button id="spdMinus" type="button" aria-label="Decrease sessions-per-day target">−</button>
+          <span class="stepper-val" id="spdVal" role="status" aria-labelledby="spdLabel" aria-live="polite">1</span>
+          <button id="spdPlus" type="button" aria-label="Increase sessions-per-day target">+</button>
+        </div>
+
+        <button class="btn btn-primary" id="startBtn" type="button">▶ Start practice</button>
+        <div class="first-run-hint" id="firstRunHint" hidden>The first time you finish a session, this page will ask permission to use Claude's AI to check the photo — you can decline and everything else still works.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="history-head">
+        <h2>Practice log</h2>
+        <span class="mono" style="font-size:12px;color:var(--ink-faint)" id="syncState">local only</span>
+      </div>
+      <div class="heat" id="heatGrid"></div>
+      <div class="log" id="logList"></div>
+    </div>
+
+    <div id="storageWarning" class="storage-warning" hidden>⚠️ This browser is blocking on-device storage, so anything not synced to your account may not be saved reliably here. If sessions keep disappearing, try opening this link in a regular browser tab instead of an in-app view.</div>
+
+    <div class="footnote">His photo of each finished page is saved here so you can check progress together. Shared history syncs when this page is opened by someone with edit access (Contributor or above) on your Claude account; otherwise it's kept on that device only.</div>
+  </div>
+
+  <!-- ============ PRACTICE ============ -->
+  <div id="view-practice" hidden>
+    <div class="practice-top">
+      <button class="exit-btn" id="exitPracticeBtn" type="button">✕</button>
+      <span class="topic-chip" id="practiceTopicChip">Topic</span>
+      <span style="width:36px"></span>
+    </div>
+
+    <div class="ringwrap">
+      <div class="ring" id="ring">
+        <svg viewBox="0 0 172 172">
+          <circle class="track" cx="86" cy="86" r="76"></circle>
+          <circle class="prog" id="ringProg" cx="86" cy="86" r="76"></circle>
+        </svg>
+        <div class="ring-label">
+          <div class="ring-time mono" id="ringTime">12:00</div>
+          <div class="ring-sub" id="ringSub">remaining</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dots" id="sentenceDots"></div>
+    <div id="timesUpBanner" class="timesup-banner" hidden>⏰ Time's up — finish this sentence, then wrap up whenever you're ready.</div>
+
+    <div class="sentence-stage">
+      <div class="sentence-hint" id="sentenceHint">Press <b>Play</b> to begin — it reads a few words at a time, like a real dictée.</div>
+    </div>
+
+    <div class="speed-row">
+      <button data-rate="0.8" id="rateSlowBtn">🐢 Slow</button>
+      <button data-rate="1" class="active" id="rateNormalBtn">🙂 Normal</button>
+    </div>
+
+    <div class="controls">
+      <div class="controls-row">
+        <button class="btn btn-listen" id="playBtn" type="button">▶ Play</button>
+      </div>
+      <div class="controls-row">
+        <span id="punctCue" class="punct-cue" hidden></span>
+      </div>
+      <div class="controls-row">
+        <span id="voiceDebug" style="font-size:11px;color:var(--ink-faint);text-align:center;width:100%;"></span>
+      </div>
+      <div class="controls-row">
+        <button class="btn btn-ghost" id="nextBtn" type="button" disabled>Next →</button>
+      </div>
+      <button class="btn btn-primary" id="finishBtn" type="button">✓ Finish &amp; take a photo</button>
+    </div>
+  </div>
+
+  <!-- ============ FINISH ============ -->
+  <div id="view-finish" hidden>
+    <div class="practice-top">
+      <button class="exit-btn" id="backFromFinishBtn" type="button">←</button>
+      <span class="topic-chip">Wrap up</span>
+      <span style="width:36px"></span>
+    </div>
+    <div class="finish-scroll">
+      <div>
+        <h2 id="finishHeading" style="font-size:22px;margin-bottom:6px;">Nice work! 🎉</h2>
+        <div class="sub" id="finishSub" style="font-size:13.5px;color:var(--ink-soft)">You practiced for <span class="mono" id="finishDuration">0:00</span>. Snap a photo of the page you wrote.</div>
+      </div>
+
+      <div id="photoDropZone" class="photo-drop">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style="margin:0 auto"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
+        <div class="t1">Take or upload a photo</div>
+        <div class="t2">Tap to open your camera or photo library</div>
+      </div>
+      <input type="file" accept="image/*" capture="environment" id="photoInput" hidden>
+      <div id="photoPreviewWrap" hidden>
+        <img id="photoPreview" class="photo-preview">
+        <div class="photo-ready-row">
+          <span id="photoReadyLabel">✓ Photo ready</span>
+          <button id="retakeBtn" type="button">Choose a different photo</button>
+        </div>
+      </div>
+      <div class="privacy-note">🔒 Only photograph the page he wrote — not people or anything else. Photo analysis may use uploaded images to help improve the AI models behind it.</div>
+
+      <div class="field">
+        <label for="noteInput">Note for whoever checks this (optional)</label>
+        <input type="text" id="noteInput" placeholder="e.g. Missed one comma, fixed it myself">
+      </div>
+
+      <div id="saveArea">
+        <button class="btn btn-primary" id="saveBtn" type="button" disabled>Save today's practice</button>
+        <div class="sync-note" id="saveStatus">&nbsp;</div>
+      </div>
+
+      <div id="savedPanel" class="saved-panel" hidden>
+        <div class="saved-check">✓</div>
+        <div class="saved-title" id="savedTitle">Saved!</div>
+        <div class="saved-sub" id="savedSub">Your practice is in the log.</div>
+        <div id="savedWpm" class="dash-stat" style="margin-bottom:12px;" hidden>
+          <div class="v" id="savedWpmVal">–</div><div class="l">Words per minute</div>
+          <div style="font-size:11px;color:var(--ink-faint);margin-top:4px;line-height:1.4;">Counts the whole session — listening, replays, and writing together. That's by design: needing fewer replays over time shows up here too.</div>
+        </div>
+        <div id="reviewBox" class="legibility-box" hidden>
+          <div class="legibility-head">
+            <span id="legibilityScore" class="legibility-score"></span>
+            <span id="legibilityLabel">Reading his handwriting…</span>
+          </div>
+          <div id="legibilityText" class="legibility-text"></div>
+          <ul id="dimList" class="dim-list"></ul>
+
+          <div id="accuracySection" hidden>
+            <div class="legibility-head" style="margin-top:12px;">
+              <span id="accuracyScore" class="legibility-score accuracy"></span>
+              <span id="accuracyLabel">Accuracy</span>
+            </div>
+            <div id="accuracyText" class="legibility-text"></div>
+            <ul id="errorList" class="error-list"></ul>
+          </div>
+          <div id="reviewCaveat" class="privacy-note" style="margin-top:10px;" hidden>These scores are the AI's best read of one photo, not a precise measurement — expect small ups and downs between sessions. Look at the trend over time (in 📊 Trends) rather than any single score.</div>
+        </div>
+        <button class="btn btn-outline" id="doneBtn" type="button">Back to today's log →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div id="view-dashboard" hidden>
+    <div class="practice-top" style="margin-bottom:6px;">
+      <button class="exit-btn" id="closeDashBtn" type="button">✕</button>
+      <span class="topic-chip">Trends</span>
+      <span style="width:36px"></span>
+    </div>
+    <h2 style="font-size:22px;">Progress over time</h2>
+    <div class="dash-stats">
+      <div class="dash-stat"><div class="v" id="avgWpm">–</div><div class="l">Avg words/min</div></div>
+      <div class="dash-stat"><div class="v" id="avgLeg">–</div><div class="l">Avg legibility</div></div>
+      <div class="dash-stat"><div class="v" id="avgAcc">–</div><div class="l">Avg accuracy</div></div>
+    </div>
+    <div id="chartSpeed" class="chart-card"></div>
+    <div id="chartLegibility" class="chart-card"></div>
+    <div id="chartAccuracy" class="chart-card"></div>
+  </div>
+
+  <!-- ============ BEFORE & AFTER PHOTOS ============ -->
+  <div id="view-progress" hidden>
+    <div class="practice-top" style="margin-bottom:6px;">
+      <button class="exit-btn" id="closeProgressBtn" type="button">✕</button>
+      <span class="topic-chip">Progress photos</span>
+      <span style="width:36px"></span>
+    </div>
+    <h2 style="font-size:20px;">See the difference</h2>
+    <div class="sub" style="margin-bottom:14px;">The actual pages, side by side — not just the numbers.</div>
+    <div id="progressEmpty" class="log-empty" hidden>Save at least two sessions with photos to compare — keep practicing!</div>
+    <div id="progressBody" class="progress-body" hidden>
+      <div class="progress-cols">
+        <div class="progress-col">
+          <div class="progress-date" id="progLeftDate"></div>
+          <img id="progLeftPhoto" class="progress-photo" alt="Earlier practice photo">
+          <div class="progress-chips" id="progLeftChips"></div>
+          <div class="progress-nav">
+            <button type="button" id="progLeftPrev" class="btn-outline" style="padding:5px 10px;font-size:11px;border-radius:8px;">←</button>
+            <button type="button" id="progLeftNext" class="btn-outline" style="padding:5px 10px;font-size:11px;border-radius:8px;">→</button>
+          </div>
+        </div>
+        <div class="progress-col">
+          <div class="progress-date" id="progRightDate"></div>
+          <img id="progRightPhoto" class="progress-photo" alt="Recent practice photo">
+          <div class="progress-chips" id="progRightChips"></div>
+          <div class="progress-nav">
+            <button type="button" id="progRightPrev" class="btn-outline" style="padding:5px 10px;font-size:11px;border-radius:8px;">←</button>
+            <button type="button" id="progRightNext" class="btn-outline" style="padding:5px 10px;font-size:11px;border-radius:8px;">→</button>
+          </div>
+        </div>
+      </div>
+      <div class="passage-preview" style="margin-top:16px;">The numbers tell you it's improving; the pages show you how.</div>
+    </div>
+  </div>
+
+  <!-- ============ LIGHTBOX ============ -->
+  <div id="lightbox" hidden>
+    <button id="lightboxClose" type="button">✕</button>
+    <img id="lightboxImg" src="" alt="Practice photo">
+    <div class="lb-cap" id="lightboxCap"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- Passage bank ---------------- */
+  var PASSAGES = [
+    { id:"space", topic:"Space & astronomy", sentences:[
+      "Every star visible to the naked eye belongs to our own galaxy, a flattened disk some hundred thousand light-years across.",
+      "Light from the nearest large galaxy, Andromeda, left its stars two and a half million years ago; we are seeing its ancient past, not its present.",
+      "Astronomers once believed the universe was static and eternal — a calm, unchanging backdrop.",
+      "Edwin Hubble's observations in the 1920s overturned that idea completely: the galaxies were rushing apart, and the universe itself was expanding." ]},
+    { id:"ocean", topic:"The deep ocean", sentences:[
+      "Sunlight fades to darkness only two hundred meters below the surface, yet life continues for thousands of meters further down.",
+      "In that permanent night, some fish generate their own light through a process called bioluminescence.",
+      "The pressure at the ocean's deepest point, the Mariana Trench, is over a thousand times greater than at sea level.",
+      "Despite these extremes, scientists keep finding creatures there: pale, strange, and perfectly adapted to a world without sun." ]},
+    { id:"invention", topic:"A quiet invention", sentences:[
+      "In 1943, a Swiss engineer named George de Mestral returned from a walk and noticed burrs clinging stubbornly to his dog's fur.",
+      "Curious, he examined one under a microscope and found tiny hooks that caught on anything looped, like fabric or hair.",
+      "It took him nearly a decade of failed attempts before he perfected a fastener based on that hook-and-loop design.",
+      "Today we call it Velcro, and it holds together everything from sneakers to spacesuits." ]},
+    { id:"focus", topic:"Attention & habit", sentences:[
+      "Willpower, researchers have found, behaves less like a fixed trait and more like a muscle that tires with use.",
+      "A person who resists one temptation in the morning often has less resistance left by evening.",
+      "That is why habits matter more than willpower: a habit runs quietly, without demanding a decision each time.",
+      "\"Motivation gets you started,\" one coach likes to say; \"habit is what keeps you going after motivation leaves the room.\"" ]},
+    { id:"discipline", topic:"Sport & discipline", sentences:[
+      "The fastest swimmers in the world spend far more hours training than competing — often a ratio of a thousand to one.",
+      "Coaches call this the iceberg principle: the visible race is only the tip of a much larger, unseen effort.",
+      "Small, unglamorous repetitions — a turn practiced a hundred times, a stroke corrected by inches — rarely make headlines.",
+      "Yet they are almost always the real difference between a good athlete and a great one." ]},
+    { id:"ai", topic:"Machines that learn", sentences:[
+      "A modern language model does not memorize sentences the way a student memorizes a poem; it learns statistical patterns from enormous amounts of text.",
+      "Given a sentence's beginning, it estimates which word is likely to come next, then the next, one probability at a time.",
+      "This is why such systems can write fluently about topics they were never explicitly taught, yet also state confident nonsense.",
+      "Understanding the difference between the two remains one of the central challenges in the field." ]},
+    { id:"weather", topic:"Storms & weather", sentences:[
+      "A single lightning bolt can heat the surrounding air to roughly thirty thousand kelvin — hotter, for an instant, than the surface of the sun.",
+      "That superheated air expands violently and then contracts, producing the shockwave we hear as thunder.",
+      "Because light travels far faster than sound, counting the seconds between a flash and its rumble tells you roughly how many miles away the storm sits.",
+      "Five seconds equals about one mile; the shorter the gap, the closer the danger." ]},
+    { id:"travel", topic:"A journey remembered", sentences:[
+      "The train climbed slowly out of the valley, and the fields below shrank until they looked like a patchwork quilt someone had left unfolded.",
+      "At the summit, the conductor made an announcement in three languages, none of which I understood completely, and everyone laughed anyway.",
+      "I remember thinking that a good journey doesn't need to be explained; it only needs to be noticed.",
+      "By the time we reached the coast, the sky had turned the color of a bruise — deep purple fading into orange." ]},
+    { id:"music", topic:"Sound & music", sentences:[
+      "A piano string vibrating at 440 cycles per second produces the note musicians call middle A, the reference point for tuning an entire orchestra.",
+      "Double that frequency and you get the same note, one octave higher; the ear perceives them as versions of a single sound.",
+      "This mathematical relationship — doubling, halving, simple ratios — explains why certain chords sound pleasant and others sound tense.",
+      "Bach, working two centuries before anyone understood the physics, seemed to grasp the pattern by instinct alone." ]},
+    { id:"friendship", topic:"On friendship", sentences:[
+      "A friend, someone once wrote, is a person with whom you dare to be yourself.",
+      "That kind of honesty is rarer than it sounds; most relationships run on small, comfortable performances.",
+      "Real friendship tends to reveal itself not in celebration but in difficulty — who shows up, who stays quiet, who simply sits with you.",
+      "It rarely announces itself; it is usually recognized only afterward, in hindsight." ]},
+    { id:"volcano", topic:"Volcanoes", sentences:[
+      "Beneath a volcano lies a chamber of molten rock, kept liquid by pressure and heat far below the surface.",
+      "When gas trapped inside that magma can no longer stay dissolved, it expands rapidly, and the mountain erupts.",
+      "Some eruptions are quiet, releasing slow rivers of lava; others are explosive, hurling ash for miles into the sky.",
+      "The difference usually comes down to one thing: how thick and gas-rich the magma happens to be." ]},
+    { id:"rome", topic:"Ancient engineering", sentences:[
+      "Roman engineers built roads so durable that some stretches are still walked on today, nearly two thousand years later.",
+      "Their secret was layering: a foundation of large stones, then gravel, then sand, topped finally with tightly fitted paving.",
+      "Aqueducts followed the same obsession with precision, carrying water for miles using nothing but a carefully measured, gentle slope.",
+      "Without pumps or engines, gravity alone did all the work." ]},
+    { id:"climate", topic:"A changing climate", sentences:[
+      "Coral reefs cover less than one percent of the ocean floor, yet they shelter roughly a quarter of all known marine species.",
+      "When ocean temperatures rise even slightly above normal, corals expel the colorful algae living inside their tissue — a process called bleaching.",
+      "A bleached reef isn't dead, not yet; it is stressed, pale, and running out of time.",
+      "Given cooler water and enough patience, some reefs do recover; many, unfortunately, do not get the chance." ]},
+    { id:"language", topic:"Language & meaning", sentences:[
+      "The word \"nostalgia\" was coined in 1688 by a Swiss doctor who considered it a genuine medical illness — a severe, even fatal, homesickness.",
+      "Soldiers stationed far from home were diagnosed with it and, in some recorded cases, treated with opium or a return journey.",
+      "Only later did the word soften into something gentler: a bittersweet, almost pleasant longing for the past.",
+      "Few words have traveled so far from where they began." ]},
+    { id:"food", topic:"Food & culture", sentences:[
+      "Salt was once so valuable that Roman soldiers were partly paid in it, which is where the word \"salary\" comes from.",
+      "Entire trade routes across the ancient world existed largely to move salt from where it was mined to where it was scarce.",
+      "Today it sits, nearly free, in a shaker on every table — a small object whose history most of us never taste.",
+      "Value, it turns out, is rarely permanent; it depends entirely on what happens to be rare." ]},
+    { id:"migration", topic:"Animal migration", sentences:[
+      "The Arctic tern flies from one pole to the other and back again each year, covering roughly seventy thousand kilometers.",
+      "Over a lifetime that can stretch past thirty years, the total distance is close to three round trips to the moon.",
+      "No one fully understands how the bird navigates with such accuracy, though scientists suspect it senses the Earth's magnetic field.",
+      "It is, by any measure, one of the longest journeys any animal makes on purpose." ]},
+    { id:"architecture", topic:"Building tall", sentences:[
+      "A skyscraper does not stand still; on a windy day, its top floors can sway more than a meter from side to side.",
+      "Engineers design for this movement rather than against it, because a perfectly rigid tower would crack under the same forces a flexible one absorbs.",
+      "Some buildings even include a massive pendulum near the top, swinging opposite the wind to cancel out the motion.",
+      "What looks like stillness from the street is often, quietly, a controlled and constant sway." ]},
+    { id:"time", topic:"Time & attention", sentences:[
+      "A famous experiment once asked people to estimate one minute passing without a clock; bored participants guessed far too early, while absorbed ones guessed far too late.",
+      "Time, it turns out, is measured less by seconds than by attention — how much of it a moment demands.",
+      "That may explain why a difficult hour of practice can feel endless, while an hour of something engaging disappears without notice.",
+      "The clock never changes; only our relationship to it does." ]},
+    { id:"glass", topic:"The chemistry of glass", sentences:[
+      "Glass is, strictly speaking, neither solid nor liquid; chemists call it an amorphous solid, its atoms frozen in a disordered, liquid-like arrangement.",
+      "It forms when sand — mostly silica — is heated past 1,700 degrees Celsius and then cooled too quickly for its atoms to settle into a neat crystal.",
+      "Ancient glassmakers in Mesopotamia discovered this by accident, likely while firing pottery near sandy riverbanks.",
+      "Modern windows still rely on the same basic trick, just cooled far more evenly." ]},
+    { id:"memory", topic:"How memory works", sentences:[
+      "Every time you recall a memory, your brain doesn't play it back like a recording; it reconstructs it, slightly differently, from scattered fragments.",
+      "This is why eyewitness testimony is far less reliable than juries once assumed: confidence and accuracy are not the same thing.",
+      "Researchers call this reconsolidation, and it means memory is less a filing cabinet than a story we keep quietly rewriting.",
+      "\"You are not remembering the event,\" one neuroscientist put it; \"you are remembering the last time you remembered it.\"" ]},
+    { id:"bridges", topic:"Suspension bridges", sentences:[
+      "A suspension bridge holds its deck aloft using massive steel cables, each one built from thousands of individual wires no thicker than a pencil.",
+      "Spun in place, strand by strand, a single main cable can take over a year to complete.",
+      "The genius of the design is that the whole structure works in tension, not compression — every part pulling rather than pushing.",
+      "That is also why wind, not weight, is usually an engineer's greatest worry." ]},
+    { id:"bees", topic:"How bees communicate", sentences:[
+      "A returning honeybee tells the rest of the hive where to find food using a waggle dance, its body language.",
+      "The angle of the dance relative to vertical marks the direction to fly relative to the sun; the duration marks the distance.",
+      "Other bees crowd around to feel the vibrations in complete darkness, since the hive has no light to see by.",
+      "Karl von Frisch spent decades decoding this and won a Nobel Prize for it in 1973." ]},
+    { id:"currency", topic:"The idea of money", sentences:[
+      "Long before coins existed, some societies used enormous stone discs as currency on the Micronesian island of Yap.",
+      "A stone too large to move might change owners without ever being touched — everyone simply agreed on whose it was.",
+      "Modern digital payments, oddly enough, work the same way: no object changes hands, only a shared record of who owns what.",
+      "Money, in the end, has always been less a thing than an agreement." ]},
+    { id:"desert", topic:"Life in the desert", sentences:[
+      "The kangaroo rat, a small desert rodent, can survive its entire life without ever drinking a single drop of water.",
+      "It gets all the moisture it needs from the seeds it eats, and its kidneys are so efficient that almost none is wasted.",
+      "Its burrow stays cool and humid even when the surface above bakes past fifty degrees Celsius.",
+      "Survival here is less about enduring the heat than about avoiding it entirely." ]},
+    { id:"printing", topic:"The printing press", sentences:[
+      "Before Gutenberg, a single hand-copied Bible could take a monk more than a year to finish.",
+      "His press, developed around 1440, combined movable metal type with a modified wine press — an old technology repurposed for a new one.",
+      "Within fifty years, an estimated twenty million books had been printed across Europe, up from perhaps a few thousand.",
+      "Ideas that once traveled at the speed of a single scribe's hand suddenly moved as fast as paper could be shipped." ]},
+    { id:"color", topic:"Why the sky is blue", sentences:[
+      "Sunlight looks white, but it's secretly made of every color mixed together, each with its own wavelength.",
+      "As it passes through the atmosphere, shorter wavelengths — blues and violets — scatter far more than longer ones like red.",
+      "Our eyes are more sensitive to blue than violet, which is why the sky reads as blue rather than purple.",
+      "At sunset, when light travels through more atmosphere, most of that blue has already scattered away, leaving the reds and oranges behind." ]},
+    { id:"habit-loop", topic:"The habit loop", sentences:[
+      "Researchers describe every habit as a loop with three parts: a cue, a routine, and a reward.",
+      "The cue might be a time of day, a location, or even a feeling; the routine is the behavior itself; the reward is what keeps the loop running.",
+      "Breaking a bad habit rarely works by willpower alone — it works by keeping the same cue and reward but swapping the routine in between.",
+      "This is why habits are so hard to delete and so much easier to redirect." ]},
+    { id:"ants", topic:"Ant colonies", sentences:[
+      "A single ant is almost mindless, following simple chemical trails without any sense of the bigger picture.",
+      "Yet a whole colony can build elaborate tunnel networks, farm fungus, and even wage coordinated wars between rival nests.",
+      "Scientists call this emergent behavior: complexity arising from many simple parts, with no single ant in charge.",
+      "Some researchers think a large colony behaves less like a group of individuals and more like one distributed organism." ]},
+    { id:"paper", topic:"The invention of paper", sentences:[
+      "Paper was invented in China around 105 CE by a court official named Cai Lun, who mixed mulberry bark, hemp, and old fishnets with water.",
+      "Before that, writing surfaces were expensive: silk in China, papyrus in Egypt, thin sheets of animal skin called parchment in Europe.",
+      "The technique took centuries to spread west, reaching the Middle East by the 8th century and Europe only by the 12th.",
+      "A material invented to save silk ended up outlasting nearly everything written on it." ]},
+    { id:"clouds", topic:"Reading the clouds", sentences:[
+      "Sailors and farmers once forecast weather without any instruments, just by learning to read the shapes overhead.",
+      "A mackerel sky — thin, rippled clouds — often meant a change in weather within a day or two.",
+      "Tall, anvil-shaped clouds signal a thunderstorm brewing, its top flattened by high-altitude winds.",
+      "Long before satellites, this kind of careful, patient observation was the only forecast anyone had." ]},
+    { id:"silk", topic:"The Silk Road", sentences:[
+      "For over a thousand years, the Silk Road was not one road but a shifting network of trade routes connecting China to the Mediterranean.",
+      "Along it traveled silk, spices, and paper — but also ideas, religions, and diseases, carried as easily as goods.",
+      "No single merchant ever traveled its entire length; goods passed hand to hand between merchants who never met.",
+      "It was, in a sense, an early and very slow version of a global supply chain." ]},
+    { id:"sleep", topic:"Why we dream", sentences:[
+      "During REM sleep, the stage most associated with vivid dreaming, the brain is almost as active as when fully awake.",
+      "Yet the body goes nearly paralyzed, a safety mechanism that stops us from acting out whatever we're dreaming.",
+      "Some researchers believe dreams help consolidate memory; others think they simply reflect random neural noise the mind tries to narrate.",
+      "No single theory has fully explained why a resting brain would bother inventing stories at all." ]}
+  ];
+
+  /* ---------------- Utilities ---------------- */
+  function pad2(n){ return (n<10?"0":"")+n; }
+  function fmtClock(totalSec){
+    totalSec = Math.max(0, Math.round(totalSec));
+    var m = Math.floor(totalSec/60), s = totalSec%60;
+    return m+":"+pad2(s);
+  }
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
+  }
+  function dateStrOffset(days){
+    var d = new Date();
+    d.setDate(d.getDate()+days);
+    return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
+  }
+  function safeLS(){
+    try{ var k="__t"+Math.random(); localStorage.setItem(k,"1"); localStorage.removeItem(k); return true; }
+    catch(e){ return false; }
+  }
+  var LS_OK = safeLS();
+  function lsGet(key, fallback){
+    if(!LS_OK) return fallback;
+    try{ var v = localStorage.getItem(key); return v==null ? fallback : JSON.parse(v); }
+    catch(e){ return fallback; }
+  }
+  function lsSet(key, val){
+    if(!LS_OK) return;
+    try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+  }
+
+  /* ---------------- State ---------------- */
+  var state = {
+    name: lsGet("dd_name", ""),
+    targetMin: lsGet("dd_targetMin", 12),
+    punct: lsGet("dd_punct", false),
+    voiceURI: lsGet("dd_voiceURI", null),
+    useCustom: false,
+    customText: "",
+    deck: lsGet("dd_deck", null),      // shuffled order of passage ids not yet used
+    currentPassage: null,
+    history: lsGet("dd_history", []),  // [{date, topic, durationSec, sentences, photo:{kind:'local'|'shared', src or id}, note, synced}]
+    dbAvailable: false,
+    assetsAvailable: false,
+    sampleAvailable: false,
+    sessionsPerDay: lsGet("dd_sessionsPerDay", 1)
+  };
+
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t=a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
+  }
+  function nextDeck(){
+    if(!state.deck || !state.deck.length){
+      state.deck = shuffle(PASSAGES.map(function(p){return p.id;}));
+      lsSet("dd_deck", state.deck);
+    }
+  }
+  function passageSkillTag(p){
+    var text = p.sentences.join(" ");
+    var words = text.replace(/[^a-zA-Z' -]/g," ").trim().split(/\s+/).filter(Boolean);
+    var totalChars = words.reduce(function(s,w){ return s + w.length; }, 0);
+    var avgLen = words.length ? totalChars / words.length : 0;
+    var punctCount = (text.match(/[,;:—]/g) || []).length;
+    var punctDensity = p.sentences.length ? punctCount / p.sentences.length : 0;
+    if(avgLen >= 5.3) return "longWords";
+    if(punctDensity >= 1.3) return "punctuation";
+    return "varied";
+  }
+  function pickPassage(preferredSkill){
+    nextDeck();
+    var id = null;
+    if(preferredSkill){
+      for(var di=0; di<state.deck.length; di++){
+        var cand = null;
+        for(var pi=0; pi<PASSAGES.length; pi++){ if(PASSAGES[pi].id===state.deck[di]){ cand = PASSAGES[pi]; break; } }
+        if(cand && passageSkillTag(cand) === preferredSkill){ id = state.deck.splice(di,1)[0]; break; }
+      }
+    }
+    if(!id) id = state.deck.shift();
+    lsSet("dd_deck", state.deck);
+    for(var i=0;i<PASSAGES.length;i++){ if(PASSAGES[i].id===id) return PASSAGES[i]; }
+    return PASSAGES[0];
+  }
+  function shufflePeek(){
+    // just advance to a new passage for the preview, without permanently consuming beyond normal rotation
+    var focus = computeWeeklyFocus(state.history);
+    var skill = focus ? PASSAGE_SKILL_FOR_DIM[focus.name] : null;
+    state.currentPassage = pickPassage(skill);
+    els.passageTopicLabel.textContent = "Topic: " + state.currentPassage.topic;
+  }
+
+  /* ---------------- DOM refs ---------------- */
+  var els = {};
+  ["greetingText","editNameBtn","streakNum","bestNum","totalNum","lenSeg","passageTopicLabel","shuffleBtn",
+   "customToggle","customText","punctToggle","voiceSelect","startBtn","heatGrid","logList","syncState",
+   "startHeading","startSub",
+   "viewHome","viewPractice","viewFinish",
+   "exitPracticeBtn","practiceTopicChip","ring","ringProg","ringTime","ringSub","sentenceDots","timesUpBanner",
+   "sentenceHint","rateSlowBtn","rateNormalBtn","playBtn","punctCue","voiceDebug","nextBtn","finishBtn",
+   "backFromFinishBtn","finishHeading","finishSub","finishDuration",
+   "photoDropZone","photoInput","photoPreview","photoPreviewWrap","retakeBtn","noteInput",
+   "saveArea","saveBtn","saveStatus","savedPanel","savedTitle","savedSub","savedWpm","savedWpmVal","doneBtn",
+   "reviewBox","legibilityScore","legibilityLabel","legibilityText","reviewCaveat","dimList",
+   "accuracySection","accuracyScore","accuracyLabel","accuracyText","errorList",
+   "storageWarning","spdMinus","spdVal","spdPlus","firstRunHint","openDashBtn","closeDashBtn",
+   "focusCard","focusText","adaptiveNote",
+   "openProgressBtn","closeProgressBtn","progressEmpty","progressBody",
+   "progLeftDate","progLeftPhoto","progLeftChips","progLeftPrev","progLeftNext",
+   "progRightDate","progRightPhoto","progRightChips","progRightPrev","progRightNext",
+   "viewDashboard","avgWpm","avgLeg","avgAcc","chartSpeed","chartLegibility","chartAccuracy",
+   "lightbox","lightboxClose","lightboxImg","lightboxCap"
+  ].forEach(function(id){ els[id] = document.getElementById(id); });
+  els.viewHome = document.getElementById("view-home");
+  els.viewPractice = document.getElementById("view-practice");
+  els.viewFinish = document.getElementById("view-finish");
+  els.viewDashboard = document.getElementById("view-dashboard");
+  els.viewProgress = document.getElementById("view-progress");
+
+  /* ---------------- Greeting / name ---------------- */
+  function renderGreeting(){
+    els.greetingText.textContent = state.name ? ("Hi, " + state.name) : "Hi there";
+  }
+  els.editNameBtn.addEventListener("click", function(){
+    var v = window.prompt ? null : null; // prompt() is inert in this environment; use inline fallback
+    var current = state.name || "";
+    var input = window.__inlineNamePrompt;
+    // Build a tiny inline editor instead of prompt()
+    var wrap = document.createElement("span");
+    wrap.style.display = "inline-flex";
+    wrap.style.gap = "4px";
+    var box = document.createElement("input");
+    box.type = "text"; box.value = current; box.placeholder = "Name";
+    box.style.font = "12px 'IBM Plex Sans', sans-serif";
+    box.style.padding = "3px 6px";
+    box.style.border = "1px solid var(--rule)";
+    box.style.borderRadius = "6px";
+    box.style.width = "90px";
+    box.style.background = "var(--paper)";
+    box.style.color = "var(--ink)";
+    var ok = document.createElement("button");
+    ok.textContent = "✓"; ok.type="button";
+    ok.style.border = "none"; ok.style.background="none"; ok.style.color="var(--good)"; ok.style.cursor="pointer";
+    wrap.appendChild(box); wrap.appendChild(ok);
+    els.greetingRow.replaceChild(wrap, els.editNameBtn);
+    box.focus();
+    function commit(){
+      state.name = box.value.trim().slice(0,24);
+      lsSet("dd_name", state.name);
+      els.greetingRow.replaceChild(els.editNameBtn, wrap);
+      renderGreeting();
+    }
+    ok.addEventListener("click", commit);
+    box.addEventListener("keydown", function(e){ if(e.key==="Enter") commit(); });
+  });
+  document.getElementById("greetingRow"); // no-op keep ref alive
+
+  /* ---------------- Length + toggles ---------------- */
+  Array.prototype.forEach.call(els.lenSeg.querySelectorAll("button"), function(btn){
+    btn.addEventListener("click", function(){
+      Array.prototype.forEach.call(els.lenSeg.querySelectorAll("button"), function(b){b.classList.remove("active");});
+      btn.classList.add("active");
+      state.targetMin = parseInt(btn.getAttribute("data-min"),10);
+      lsSet("dd_targetMin", state.targetMin);
+    });
+    if(parseInt(btn.getAttribute("data-min"),10) === state.targetMin){
+      Array.prototype.forEach.call(els.lenSeg.querySelectorAll("button"), function(b){b.classList.remove("active");});
+      btn.classList.add("active");
+    }
+  });
+
+  function setSwitch(el, on){ el.classList.toggle("on", !!on); el.setAttribute("aria-checked", !!on); }
+  setSwitch(els.punctToggle, state.punct);
+  els.punctToggle.addEventListener("click", function(){
+    state.punct = !state.punct;
+    setSwitch(els.punctToggle, state.punct);
+    lsSet("dd_punct", state.punct);
+  });
+  function populateVoiceSelect(){
+    if(!("speechSynthesis" in window)) return;
+    var voices = window.speechSynthesis.getVoices() || [];
+    var english = voices.filter(function(v){ return /^en/i.test(v.lang); });
+    var pool = english.length ? english : voices;
+    if(!pool.length) return;
+    els.voiceSelect.innerHTML = "";
+    pool.forEach(function(v){
+      var opt = document.createElement("option");
+      opt.value = v.voiceURI;
+      opt.textContent = v.name + " (" + v.lang + ")";
+      if(v.voiceURI === state.voiceURI) opt.selected = true;
+      els.voiceSelect.appendChild(opt);
+    });
+    if(!state.voiceURI || !pool.some(function(v){ return v.voiceURI===state.voiceURI; })){
+      state.voiceURI = pool[0].voiceURI;
+      els.voiceSelect.value = state.voiceURI;
+    }
+  }
+  if("speechSynthesis" in window){
+    populateVoiceSelect();
+    window.speechSynthesis.onvoiceschanged = populateVoiceSelect;
+  }
+  els.voiceSelect.addEventListener("change", function(){
+    state.voiceURI = els.voiceSelect.value;
+    lsSet("dd_voiceURI", state.voiceURI);
+  });
+  els.customToggle.addEventListener("click", function(){
+    state.useCustom = !state.useCustom;
+    setSwitch(els.customToggle, state.useCustom);
+    els.customText.hidden = !state.useCustom;
+    document.querySelector(".passage-preview").style.opacity = state.useCustom ? "0.4" : "1";
+    els.shuffleBtn.disabled = state.useCustom;
+  });
+  els.shuffleBtn.addEventListener("click", shufflePeek);
+
+  function renderSpd(){
+    els.spdVal.textContent = state.sessionsPerDay;
+    els.spdMinus.disabled = state.sessionsPerDay <= 1;
+    els.spdPlus.disabled = state.sessionsPerDay >= 5;
+  }
+  els.spdMinus.addEventListener("click", function(){
+    state.sessionsPerDay = Math.max(1, state.sessionsPerDay-1);
+    lsSet("dd_sessionsPerDay", state.sessionsPerDay);
+    renderSpd(); renderAll();
+  });
+  els.spdPlus.addEventListener("click", function(){
+    state.sessionsPerDay = Math.min(5, state.sessionsPerDay+1);
+    lsSet("dd_sessionsPerDay", state.sessionsPerDay);
+    renderSpd(); renderAll();
+  });
+  renderSpd();
+
+  /* ---------------- History rendering ---------------- */
+  function computeStreak(history){
+    var doneDates = {};
+    history.forEach(function(h){ doneDates[h.date] = true; });
+    // current streak: walk back from today (or yesterday if today not done yet)
+    var cur = 0;
+    var startOffset = doneDates[todayStr()] ? 0 : -1;
+    var i = startOffset;
+    while(doneDates[dateStrOffset(i)]){ cur++; i--; }
+    // best streak across all recorded dates
+    var allDates = Object.keys(doneDates).sort();
+    var best = 0, run = 0, prev = null;
+    allDates.forEach(function(ds){
+      if(prev){
+        var prevD = new Date(prev), curD = new Date(ds);
+        var diff = Math.round((curD-prevD)/86400000);
+        run = (diff===1) ? run+1 : 1;
+      } else { run = 1; }
+      best = Math.max(best, run);
+      prev = ds;
+    });
+    best = Math.max(best, cur);
+    return { current: cur, best: best };
+  }
+
+  function renderHeat(history){
+    var doneDates = {}; history.forEach(function(h){ doneDates[h.date]=true; });
+    els.heatGrid.innerHTML = "";
+    var days = 28;
+    for(var i=days-1;i>=0;i--){
+      var ds = dateStrOffset(-i);
+      var cell = document.createElement("i");
+      if(doneDates[ds]) cell.classList.add("done");
+      if(ds === todayStr()) cell.classList.add("today");
+      cell.title = ds;
+      els.heatGrid.appendChild(cell);
+    }
+  }
+
+  function renderLog(history){
+    var dayCounts = {};
+    history.forEach(function(h){ dayCounts[h.date] = (dayCounts[h.date]||0) + 1; });
+    var sorted = history.slice().sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return (b.seq||1) - (a.seq||1);
+    }).slice(0,12);
+    els.logList.innerHTML = "";
+    if(!sorted.length){
+      var e = document.createElement("div");
+      e.className = "log-empty";
+      e.textContent = "No sessions yet — finish today's practice to start the log.";
+      els.logList.appendChild(e);
+      return;
+    }
+    sorted.forEach(function(h){
+      var row = document.createElement("div");
+      row.className = "log-row";
+      var thumb;
+      if(h.photo && h.photo.src){
+        thumb = document.createElement("img");
+        thumb.className = "log-thumb";
+        thumb.src = h.photo.src;
+        thumb.addEventListener("click", function(){ openLightbox(h.photo.src, h.date + " — " + h.topic); });
+        thumb.addEventListener("error", function(){
+          var ph = document.createElement("div");
+          ph.className = "log-thumb placeholder";
+          ph.title = "Photo couldn't load";
+          ph.textContent = "🚫";
+          if(thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb);
+        });
+      } else {
+        thumb = document.createElement("div");
+        thumb.className = "log-thumb placeholder";
+        thumb.textContent = "📝";
+      }
+      var main = document.createElement("div");
+      main.className = "log-main";
+      var d = document.createElement("div"); d.className = "log-date"; d.textContent = h.date;
+      if(dayCounts[h.date] > 1){
+        var tag = document.createElement("span"); tag.className = "day-tag"; tag.textContent = "session " + (h.seq||1);
+        d.appendChild(tag);
+      }
+      var t = document.createElement("div"); t.className = "log-topic"; t.textContent = h.topic + (h.durationSec ? (" · " + fmtClock(h.durationSec) + " min") : "") + (h.wpm ? (" · " + h.wpm + " wpm") : "") + (h.legibility && h.legibility.score ? (" · legible " + h.legibility.score + "/5") : "") + (h.accuracy && h.accuracy.score ? (" · accurate " + h.accuracy.score + "/5") : "");
+      main.appendChild(d); main.appendChild(t);
+      var badge = document.createElement("span");
+      badge.className = "log-badge" + (h.synced ? "" : " local");
+      badge.textContent = h.synced ? "synced" : "on device";
+
+      var actions = document.createElement("div");
+      actions.className = "log-actions";
+      actions.appendChild(badge);
+
+      var delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "log-del-btn";
+      delBtn.setAttribute("aria-label", "Delete session from " + h.date);
+      delBtn.textContent = "🗑";
+      actions.appendChild(delBtn);
+
+      delBtn.addEventListener("click", function(){
+        var confirmWrap = document.createElement("span");
+        confirmWrap.className = "log-confirm";
+        var yes = document.createElement("button"); yes.type="button"; yes.className="yes"; yes.textContent="Delete";
+        var no = document.createElement("button"); no.type="button"; no.textContent="Cancel";
+        confirmWrap.appendChild(yes); confirmWrap.appendChild(no);
+        actions.replaceChild(confirmWrap, delBtn);
+        var revert = function(){ if(confirmWrap.parentNode) actions.replaceChild(delBtn, confirmWrap); };
+        var timeoutId = setTimeout(revert, 5000);
+        no.addEventListener("click", function(){ clearTimeout(timeoutId); revert(); });
+        yes.addEventListener("click", function(){
+          clearTimeout(timeoutId);
+          deleteSession(h);
+        });
+      });
+
+      row.appendChild(thumb); row.appendChild(main); row.appendChild(actions);
+      els.logList.appendChild(row);
+    });
+  }
+
+  function renderAll(){
+    var s = computeStreak(state.history);
+    els.streakNum.textContent = s.current;
+    els.bestNum.textContent = s.best;
+    els.totalNum.textContent = state.history.length;
+    var todayCount = state.history.filter(function(h){ return h.date===todayStr(); }).length;
+    var target = state.sessionsPerDay;
+    if(todayCount === 0){
+      els.startHeading.textContent = "Start today's practice";
+      els.startSub.textContent = target > 1
+        ? ("Today's target: " + target + " sessions. Pick a length, then press play.")
+        : "Pick a length, then press play — a passage will be read aloud for you to write.";
+      els.startBtn.textContent = "▶ Start practice";
+    } else if(todayCount < target){
+      els.startHeading.textContent = todayCount + " of " + target + " done today ✓";
+      els.startSub.textContent = "Keep going — " + (target-todayCount) + " more to hit today's target.";
+      els.startBtn.textContent = "▶ Start next session";
+    } else {
+      els.startHeading.textContent = "Today's target reached ✓ (" + todayCount + "/" + target + ")";
+      els.startSub.textContent = "Want a bonus round? It'll be added as an extra session today.";
+      els.startBtn.textContent = "▶ Practice anyway";
+    }
+    renderHeat(state.history);
+    renderLog(state.history);
+    els.syncState.textContent = state.dbAvailable ? "synced" : "local only";
+    els.firstRunHint.hidden = state.history.length > 0;
+
+    var focus = computeWeeklyFocus(state.history);
+    if(focus){
+      els.focusCard.hidden = false;
+      els.focusText.textContent = focus.tip;
+    } else {
+      els.focusCard.hidden = true;
+    }
+    var adaptive = adaptivePassageNote(focus);
+    if(adaptive){
+      els.adaptiveNote.hidden = false;
+      els.adaptiveNote.textContent = adaptive;
+    } else {
+      els.adaptiveNote.hidden = true;
+    }
+  }
+
+  var DIM_TIPS = {
+    letter_formation: "Focus on forming each letter clearly and fully.",
+    size_consistency: "Keep letters the same height across a word.",
+    spacing: "Leave even, consistent gaps between words and letters.",
+    baseline: "Keep your writing sitting on the line, start to finish.",
+    slant: "Try to keep your letters leaning the same way throughout."
+  };
+  function computeWeeklyFocus(history){
+    var recent = history.slice().sort(function(a,b){
+      if(a.date!==b.date) return a.date<b.date?1:-1;
+      return (b.seq||1)-(a.seq||1);
+    }).slice(0,7);
+    var counts = {}, lastNote = {};
+    recent.forEach(function(h){
+      if(!h.legibility || !Array.isArray(h.legibility.dimensions)) return;
+      h.legibility.dimensions.forEach(function(d){
+        if(d.flag === "needs_work"){
+          counts[d.name] = (counts[d.name]||0) + 1;
+          if(!lastNote[d.name]) lastNote[d.name] = { label: d.label, note: d.note };
+        }
+      });
+    });
+    var best = null, bestCount = 0;
+    Object.keys(counts).forEach(function(name){
+      if(counts[name] > bestCount){ bestCount = counts[name]; best = name; }
+    });
+    if(!best || bestCount < 2) return null;
+    var label = (lastNote[best] && lastNote[best].label) || best;
+    var tip = (lastNote[best] && lastNote[best].note) || DIM_TIPS[best] || ("Work on " + label.toLowerCase() + ".");
+    return { name: best, label: label, tip: "This week: " + tip };
+  }
+
+  var PASSAGE_SKILL_FOR_DIM = {
+    letter_formation: "varied", size_consistency: "longWords", spacing: "punctuation",
+    baseline: "punctuation", slant: "varied"
+  };
+  var SKILL_NAMES = { longWords: "longer words", punctuation: "extra punctuation practice", varied: "varied letter shapes" };
+  function adaptivePassageNote(focus){
+    if(!focus) return null;
+    var skill = PASSAGE_SKILL_FOR_DIM[focus.name];
+    if(!skill) return null;
+    return "🎯 Today's passage leans on " + SKILL_NAMES[skill] + " to help with " + focus.label.toLowerCase() + ".";
+  }
+
+  function openLightbox(src, cap){
+    els.lightboxImg.src = src;
+    els.lightboxCap.textContent = cap || "";
+    els.lightbox.hidden = false;
+  }
+  els.lightboxImg.addEventListener("error", function(){
+    els.lightboxCap.textContent = "This photo couldn't be loaded (it may only be available on the device it was saved from).";
+  });
+  els.lightboxClose.addEventListener("click", function(){ els.lightbox.hidden = true; });
+  els.lightbox.addEventListener("click", function(e){ if(e.target===els.lightbox) els.lightbox.hidden = true; });
+
+  /* ---------------- View switching ---------------- */
+  function showView(name){
+    els.viewHome.hidden = name!=="home";
+    els.viewPractice.hidden = name!=="practice";
+    els.viewFinish.hidden = name!=="finish";
+    els.viewDashboard.hidden = name!=="dashboard";
+    els.viewProgress.hidden = name!=="progress";
+  }
+  els.openDashBtn.addEventListener("click", function(){ renderDashboard(); showView("dashboard"); });
+  els.closeDashBtn.addEventListener("click", function(){ showView("home"); });
+
+  var progressIdx = { left: 0, right: 0 };
+  els.openProgressBtn.addEventListener("click", function(){
+    var entries = progressEntries();
+    progressIdx.left = 0;
+    progressIdx.right = entries.length - 1;
+    renderProgress();
+    showView("progress");
+  });
+  els.closeProgressBtn.addEventListener("click", function(){ showView("home"); });
+  els.progLeftPrev.addEventListener("click", function(){ moveProgress("left", -1); });
+  els.progLeftNext.addEventListener("click", function(){ moveProgress("left", 1); });
+  els.progRightPrev.addEventListener("click", function(){ moveProgress("right", -1); });
+  els.progRightNext.addEventListener("click", function(){ moveProgress("right", 1); });
+
+  /* ---------------- Practice session ---------------- */
+  var practice = {
+    sentences: [],
+    topic: "",
+    idx: -1,
+    rate: 1,
+    startedAt: null,
+    timerId: null,
+    targetSec: 12*60,
+    elapsed: 0,
+    over: false,
+    wordCount: 0,
+    phrases: []
+  };
+
+  function splitCustom(text){
+    var parts = text.replace(/\s+/g," ").trim().split(/(?<=[.!?])\s+/);
+    return parts.filter(function(p){ return p.trim().length>0; });
+  }
+
+  function splitIntoPhrases(sentence){
+    // Break a sentence into short, natural pause-points: comma/semicolon/colon/dash
+    // boundaries first, then further split any still-long fragment by word count.
+    var rough = sentence.split(/(?<=[,;:—])\s+/);
+    var chunks = [];
+    rough.forEach(function(frag){
+      frag = frag.trim();
+      if(!frag) return;
+      var words = frag.split(/\s+/);
+      if(words.length > 11){
+        var buf = [];
+        words.forEach(function(w){
+          buf.push(w);
+          if(buf.length >= 7){ chunks.push(buf.join(" ")); buf = []; }
+        });
+        if(buf.length) chunks.push(buf.join(" "));
+      } else {
+        chunks.push(frag);
+      }
+    });
+    // merge fragments shorter than 3 words into the previous chunk (avoids awkward single-word pauses)
+    var merged = [];
+    chunks.forEach(function(c){
+      var wc = c.split(/\s+/).length;
+      if(wc < 3 && merged.length){
+        merged[merged.length-1] = merged[merged.length-1] + " " + c;
+      } else {
+        merged.push(c);
+      }
+    });
+    return merged.length ? merged : [sentence];
+  }
+
+  function speakableVersion(sentence){
+    if(!state.punct) return sentence;
+    var s = sentence;
+    s = s.replace(/,/g, " comma,");
+    s = s.replace(/;/g, " semicolon;");
+    s = s.replace(/:/g, " colon:");
+    s = s.replace(/—/g, " dash");
+    s = s.replace(/\?/g, " question mark.");
+    s = s.replace(/!/g, " exclamation mark.");
+    s = s.replace(/\.$/, " full stop.");
+    return s;
+  }
+
+  function startPractice(){
+    if(state.useCustom && els.customText.value.trim()){
+      practice.sentences = splitCustom(els.customText.value);
+      practice.topic = "Your own passage";
+    } else {
+      var p = state.currentPassage || pickPassage();
+      practice.sentences = p.sentences;
+      practice.topic = p.topic;
+    }
+    practice.idx = -1;
+    practice.rate = 1;
+    practice.targetSec = state.targetMin*60;
+    practice.elapsed = 0;
+    practice.over = false;
+    practice.startedAt = Date.now();
+    practice.wordCount = practice.sentences.join(" ").trim().split(/\s+/).filter(Boolean).length;
+    practice.phrases = [];
+    practice.sentences.forEach(function(s, si){
+      splitIntoPhrases(s).forEach(function(chunk){
+        practice.phrases.push({ text: chunk, sentenceIdx: si });
+      });
+    });
+
+    els.practiceTopicChip.textContent = practice.topic;
+    els.rateSlowBtn.classList.remove("active");
+    els.rateNormalBtn.classList.add("active");
+    els.timesUpBanner.hidden = true;
+    els.ring.classList.remove("over");
+    buildDots();
+    updateRing();
+    els.sentenceHint.innerHTML = "Press <b>Play</b> to begin — it reads a few words at a time, like a real dictée.";
+    els.playBtn.textContent = "▶ Play";
+    els.punctCue.hidden = true;
+    els.nextBtn.disabled = true;
+    showView("practice");
+
+    if(practice.timerId) clearInterval(practice.timerId);
+    practice.timerId = setInterval(tick, 1000);
+  }
+
+  function buildDots(){
+    els.sentenceDots.innerHTML = "";
+    practice.phrases.forEach(function(ph, i){
+      var d = document.createElement("i");
+      var next = practice.phrases[i+1];
+      if(!next || next.sentenceIdx !== ph.sentenceIdx) d.classList.add("sentence-end");
+      els.sentenceDots.appendChild(d);
+    });
+    updateDots();
+  }
+  function updateDots(){
+    var dots = els.sentenceDots.children;
+    for(var i=0;i<dots.length;i++){
+      dots[i].classList.remove("done","current");
+      if(i<practice.idx) dots[i].classList.add("done");
+      else if(i===practice.idx) dots[i].classList.add("current");
+    }
+  }
+
+  var RING_R = 76, RING_C = 2*Math.PI*RING_R;
+  els.ringProg.style.strokeDasharray = RING_C.toFixed(1);
+  function updateRing(){
+    var remain = practice.targetSec - practice.elapsed;
+    var over = remain < 0;
+    practice.over = over;
+    els.ring.classList.toggle("over", over);
+    var frac = over ? Math.min(1, (-remain)/Math.max(60, practice.targetSec*0.4)) : Math.max(0, remain/practice.targetSec);
+    var offset = over ? RING_C*(1-frac) : RING_C*(1-frac);
+    els.ringProg.style.strokeDashoffset = offset.toFixed(1);
+    els.ringTime.textContent = fmtClock(Math.abs(remain));
+    els.ringSub.textContent = over ? "overtime" : "remaining";
+    if(over && els.timesUpBanner.hidden){
+      els.timesUpBanner.hidden = false;
+    }
+  }
+  function tick(){
+    practice.elapsed = Math.round((Date.now()-practice.startedAt)/1000);
+    updateRing();
+  }
+
+  function currentUtteranceText(){
+    var ph = practice.phrases[practice.idx];
+    return speakableVersion(ph ? ph.text : "");
+  }
+
+  function pickBestVoice(){
+    var voices = window.speechSynthesis.getVoices() || [];
+    if(!voices.length) return null;
+    if(state.voiceURI){
+      var chosen = voices.filter(function(v){ return v.voiceURI === state.voiceURI; })[0];
+      if(chosen) return chosen;
+    }
+    var english = voices.filter(function(v){ return /^en/i.test(v.lang); });
+    return english[0] || voices[0];
+  }
+
+  function speakCurrent(){
+    if(!("speechSynthesis" in window)){
+      els.sentenceHint.textContent = "Sorry — this browser can't read text aloud. Try Chrome, Edge, or Safari.";
+      return;
+    }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(currentUtteranceText());
+    u.rate = practice.rate;
+    var allVoices = window.speechSynthesis.getVoices() || [];
+    var voice = pickBestVoice();
+    if(voice){ u.voice = voice; u.lang = voice.lang; } else { u.lang = "en-US"; }
+    console.log("[voice] " + allVoices.length + " voices available:", allVoices.map(function(v){ return v.name + " (" + v.lang + (v.localService?", local":", remote") + ")"; }));
+    console.log("[voice] chosen:", voice ? (voice.name + " (" + voice.lang + ")") : "none — using browser default");
+    if(els.voiceDebug){
+      els.voiceDebug.textContent = voice
+        ? ("🔊 " + voice.name + " — " + allVoices.length + " voice(s) found")
+        : ("🔊 browser default — " + allVoices.length + " voice(s) found");
+    }
+    window.speechSynthesis.speak(u);
+  }
+
+  var PUNCT_CUE = {
+    ",": "Ends with a comma",
+    ";": "Ends with a semicolon",
+    ":": "Ends with a colon",
+    "—": "Ends with a dash",
+    ".": "Ends with a full stop",
+    "?": "Ends with a question mark",
+    "!": "Ends with an exclamation mark"
+  };
+  function updatePunctCue(){
+    var ph = practice.phrases[practice.idx];
+    var text = ph ? ph.text.trim() : "";
+    var last = text.slice(-1);
+    var cue = PUNCT_CUE[last];
+    if(cue){ els.punctCue.hidden = false; els.punctCue.textContent = cue; }
+    else { els.punctCue.hidden = true; }
+  }
+
+  function setSentenceHint(){
+    var isLast = practice.idx === practice.phrases.length-1;
+    var ph = practice.phrases[practice.idx];
+    var sentenceIdx = ph ? ph.sentenceIdx : 0;
+    els.sentenceHint.innerHTML = isLast
+      ? "Last part (sentence <b>" + (sentenceIdx+1) + " of " + practice.sentences.length + "</b>) — listen, then press <b>Finish</b> when your writing is done."
+      : "Sentence <b>" + (sentenceIdx+1) + " of " + practice.sentences.length + "</b> — listen, then write.";
+    els.nextBtn.disabled = isLast;
+    els.nextBtn.textContent = isLast ? "That's everything" : "Next →";
+  }
+  els.playBtn.addEventListener("click", function(){
+    if(practice.idx === -1) practice.idx = 0;
+    updateDots();
+    setSentenceHint();
+    speakCurrent();
+    els.playBtn.textContent = "🔁 Repeat";
+    els.punctCue.hidden = true; // only reveal once they've heard it at least once
+    setTimeout(updatePunctCue, 50);
+  });
+  els.nextBtn.addEventListener("click", function(){
+    if(practice.idx < practice.phrases.length-1){
+      practice.idx++;
+      updateDots();
+      setSentenceHint();
+      speakCurrent();
+      els.playBtn.textContent = "🔁 Repeat";
+      els.punctCue.hidden = true;
+      setTimeout(updatePunctCue, 50);
+    }
+  });
+  els.rateSlowBtn.addEventListener("click", function(){
+    practice.rate = 0.8;
+    els.rateSlowBtn.classList.add("active"); els.rateNormalBtn.classList.remove("active");
+  });
+  els.rateNormalBtn.addEventListener("click", function(){
+    practice.rate = 1;
+    els.rateNormalBtn.classList.add("active"); els.rateSlowBtn.classList.remove("active");
+  });
+
+  var pendingExit = false;
+  els.exitPracticeBtn.addEventListener("click", function(){
+    if(!pendingExit){
+      pendingExit = true;
+      els.exitPracticeBtn.textContent = "✕ sure?";
+      els.exitPracticeBtn.style.background = "var(--accent-soft)";
+      els.exitPracticeBtn.style.color = "var(--accent)";
+      setTimeout(function(){
+        pendingExit = false;
+        els.exitPracticeBtn.textContent = "✕";
+        els.exitPracticeBtn.style.background = "";
+        els.exitPracticeBtn.style.color = "";
+      }, 2500);
+      return;
+    }
+    pendingExit = false;
+    if(practice.timerId) clearInterval(practice.timerId);
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+    showView("home");
+  });
+
+  /* ---------------- Finish / photo / save ---------------- */
+  var finishData = { photoBlob:null, photoPreviewUrl:null };
+
+  els.finishBtn.addEventListener("click", function(){
+    if(practice.timerId) clearInterval(practice.timerId);
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+    els.finishDuration.textContent = fmtClock(practice.elapsed);
+    els.saveBtn.disabled = true;
+    els.saveStatus.innerHTML = "&nbsp;";
+    finishData.photoBlob = null;
+    els.photoPreviewWrap.hidden = true;
+    els.photoDropZone.hidden = false;
+    els.saveArea.hidden = false;
+    els.savedPanel.hidden = true;
+    els.savedWpm.hidden = true;
+    els.reviewBox.hidden = true;
+    els.reviewCaveat.hidden = true;
+    els.dimList.innerHTML = "";
+    els.noteInput.value = "";
+    showView("finish");
+  });
+  els.backFromFinishBtn.addEventListener("click", function(){ showView("practice"); });
+
+  els.photoDropZone.addEventListener("click", function(){ els.photoInput.click(); });
+  els.retakeBtn.addEventListener("click", function(){ els.photoInput.click(); });
+  els.photoInput.addEventListener("change", function(){
+    var file = els.photoInput.files && els.photoInput.files[0];
+    if(!file) return;
+    var img = new Image();
+    var reader = new FileReader();
+    reader.onload = function(e){
+      img.onload = function(){
+        compressAndStore(img);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function compressAndStore(img){
+    function drawScaled(maxDim, quality, cb){
+      var w = img.width, h = img.height;
+      var scale = Math.min(1, maxDim/Math.max(w,h));
+      var cw = Math.round(w*scale), ch = Math.round(h*scale);
+      var canvas = document.createElement("canvas");
+      canvas.width = cw; canvas.height = ch;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, cw, ch);
+      canvas.toBlob(function(blob){ cb(blob, canvas.toDataURL("image/jpeg", quality)); }, "image/jpeg", quality);
+    }
+    drawScaled(1400, 0.78, function(hiBlob){
+      finishData.photoBlob = hiBlob;
+      drawScaled(640, 0.55, function(_, thumbDataUrl){
+        finishData.previewDataUrl = thumbDataUrl;
+        els.photoPreview.src = thumbDataUrl;
+        els.photoPreviewWrap.hidden = false;
+        els.photoDropZone.hidden = true;
+        els.saveBtn.disabled = false;
+      });
+    });
+  }
+
+  els.saveBtn.addEventListener("click", function(){
+    els.saveBtn.disabled = true;
+    els.saveStatus.textContent = "Saving…";
+    var today = todayStr();
+    var todaySeq = state.history.filter(function(h){ return h.date===today; }).length + 1;
+    var minutes = practice.elapsed / 60;
+    var wpm = (practice.elapsed >= 5 && practice.wordCount > 0) ? Math.round(practice.wordCount / minutes) : null;
+    var record = {
+      date: today,
+      seq: todaySeq,
+      topic: practice.topic,
+      durationSec: practice.elapsed,
+      sentences: practice.sentences.length,
+      wordCount: practice.wordCount,
+      wpm: wpm,
+      passageText: practice.sentences.join(" "),
+      note: els.noteInput.value.trim().slice(0,200),
+      synced: false,
+      photo: { src: finishData.previewDataUrl }
+    };
+    saveRecord(record).then(function(finalRecord){
+      // replace this same session if resaved, keep other sessions from today intact
+      state.history = state.history.filter(function(h){ return !(h.date===finalRecord.date && h.seq===finalRecord.seq); });
+      state.history.push(finalRecord);
+      lsSet("dd_history", trimForLocal(state.history));
+      renderAll();
+
+      els.saveArea.hidden = true;
+      els.savedPanel.hidden = false;
+      els.savedTitle.textContent = "Saved!";
+      els.savedSub.textContent = finalRecord.synced
+        ? "Synced — visible from any device you open this from."
+        : "Saved on this device.";
+      if(wpm){
+        els.savedWpm.hidden = false;
+        els.savedWpmVal.textContent = wpm;
+      } else {
+        els.savedWpm.hidden = true;
+      }
+
+      checkReview(finalRecord, finishData.photoBlob);
+    });
+  });
+  els.doneBtn.addEventListener("click", function(){ showView("home"); });
+
+  /* ---------------- Legibility + accuracy review (sample capability) ---------------- */
+  var reviewTimerId = null;
+  function renderDimList(dims){
+    els.dimList.innerHTML = "";
+    dims.forEach(function(d){
+      var li = document.createElement("li");
+      var name = document.createElement("span"); name.className = "dname"; name.textContent = d.label;
+      var flag = document.createElement("span");
+      flag.className = "dflag " + (d.flag === "good" ? "good" : "needs");
+      flag.textContent = d.flag === "good" ? "✓ Good" : "⚠ Needs work";
+      li.appendChild(name); li.appendChild(flag);
+      els.dimList.appendChild(li);
+      if(d.flag !== "good" && d.note){
+        var note = document.createElement("li");
+        note.className = "dim-note"; note.style.display = "block";
+        note.textContent = d.note;
+        els.dimList.appendChild(note);
+      }
+    });
+  }
+
+  function renderErrorList(errors){
+    els.errorList.innerHTML = "";
+    if(!errors || !errors.length) return;
+    errors.slice(0, 12).forEach(function(err){
+      var li = document.createElement("li");
+      var type = document.createElement("span");
+      type.className = "etype"; type.textContent = String(err.type || "diff").slice(0,20);
+      var word = document.createElement("span");
+      word.className = "eword";
+      var expected = String(err.expected || "").trim();
+      var found = String(err.found || "").trim();
+      if(expected && found){
+        word.innerHTML = "<b>" + found.replace(/</g,"&lt;") + "</b> <span class=\"earrow\">→</span> " + expected.replace(/</g,"&lt;");
+      } else {
+        word.textContent = expected || found || "";
+      }
+      li.appendChild(type); li.appendChild(word);
+      els.errorList.appendChild(li);
+    });
+  }
+
+  function checkReview(record, blob){
+    if(!blob){
+      els.reviewBox.hidden = false;
+      els.legibilityScore.textContent = "";
+      els.legibilityLabel.textContent = "Handwriting review unavailable";
+      els.legibilityText.textContent = "No photo to check — the session is still saved.";
+      els.accuracySection.hidden = true;
+      return;
+    }
+    els.reviewBox.hidden = false;
+    els.accuracySection.hidden = true;
+    els.reviewCaveat.hidden = true;
+    els.legibilityScore.textContent = "";
+    els.legibilityLabel.textContent = "Reading his handwriting…";
+    els.legibilityLabel.classList.add("pulsing");
+
+    var reviewStarted = Date.now();
+    if(reviewTimerId) clearInterval(reviewTimerId);
+    function tickReview(){
+      var secs = Math.round((Date.now()-reviewStarted)/1000);
+      els.legibilityText.textContent = "This can take up to a minute — please keep this page open (" + secs + "s)…";
+    }
+    tickReview();
+    reviewTimerId = setInterval(tickReview, 1000);
+    function stopReviewTimer(){
+      if(reviewTimerId){ clearInterval(reviewTimerId); reviewTimerId = null; }
+    }
+
+    var passage = record.passageText || "";
+    var prompt = "You are looking at a photo of handwriting a 16-year-old produced during a home "
+      + "dictation practice session. He was read the following passage aloud, one sentence at a time, "
+      + "and asked to write down exactly what he heard:\n\n\"" + passage + "\"\n\n"
+      + "Do two separate assessments:\n"
+      + "1. LEGIBILITY — judge how easy the handwriting itself is to read, broken into these five named "
+      + "dimensions (not content/accuracy):\n"
+      + "   - letter_formation: are individual letters well-shaped (watch for reversed b/d, malformed g/y, unclosed a/o)?\n"
+      + "   - size_consistency: do letters hold a consistent height, or does size wander within a word/line?\n"
+      + "   - spacing: consistent gaps between letters and words, not cramped or overly wide?\n"
+      + "   - baseline: does writing sit on the line, or drift up/down across a line?\n"
+      + "   - slant: is the slant consistent, or does it vary erratically letter to letter?\n"
+      + "   For each dimension give a flag of exactly \"good\" or \"needs_work\", and when it's \"needs_work\" a short, "
+      + "specific, concrete note (e.g. \"height varies noticeably between words\") — omit the note when \"good\". "
+      + "Also give one overall 1-5 score and one short overall encouraging sentence.\n"
+      + "2. ACCURACY — transcribe what he actually wrote as best you can, then compare it word-for-word to the "
+      + "passage above. List concrete differences: misspelled words, missing words/phrases, extra words, and "
+      + "punctuation or capitalization mistakes. If the handwriting is too unclear to transcribe reliably in "
+      + "places, say so honestly instead of guessing.\n\n"
+      + "Reply with ONLY a JSON object of this exact shape:\n"
+      + '{"legibility": {"score": <integer 1-5, 5=very easy to read>, "feedback": "<one short encouraging sentence>", '
+      + '"dimensions": [{"name":"letter_formation","label":"Letter formation","flag":"good"|"needs_work","note":"<string, omit or empty when good>"}, '
+      + '{"name":"size_consistency","label":"Size consistency","flag":"good"|"needs_work","note":"<...>"}, '
+      + '{"name":"spacing","label":"Spacing","flag":"good"|"needs_work","note":"<...>"}, '
+      + '{"name":"baseline","label":"Baseline","flag":"good"|"needs_work","note":"<...>"}, '
+      + '{"name":"slant","label":"Slant","flag":"good"|"needs_work","note":"<...>"}]}, '
+      + '"accuracy": {"score": <integer 1-5, 5=matches perfectly>, '
+      + '"errors": [{"type": "spelling"|"punctuation"|"missing"|"extra", "expected": "<correct text>", "found": "<what he wrote, or empty if missing>"}], '
+      + '"summary": "<one encouraging sentence naming the main thing to work on>"}}';
+
+    window.claude.use("sample").then(function(sample){
+      if(!sample){
+        stopReviewTimer();
+        els.legibilityLabel.classList.remove("pulsing");
+        els.legibilityLabel.textContent = "Handwriting review unavailable";
+        els.legibilityText.textContent = "This view can't run the AI check right now — the session and photo are still saved.";
+        return null;
+      }
+      return sample.json(prompt, { images: blob, modelTier: "default", cache: false });
+    }).then(function(result){
+      stopReviewTimer();
+      if(!result) return;
+      var leg = result.legibility || {};
+      var acc = result.accuracy || {};
+      var legScore = Math.min(5, Math.max(1, Math.round(Number(leg.score))));
+      var legOk = !isNaN(legScore);
+      var legFeedback = String(leg.feedback || "").trim();
+      var dims = Array.isArray(leg.dimensions) ? leg.dimensions.filter(function(d){
+        return d && typeof d.name === "string" && (d.flag === "good" || d.flag === "needs_work");
+      }).map(function(d){
+        return { name: d.name, label: String(d.label||d.name), flag: d.flag, note: String(d.note||"").trim() };
+      }) : [];
+      els.legibilityLabel.classList.remove("pulsing");
+      els.legibilityLabel.textContent = "Legibility";
+      els.legibilityScore.textContent = legOk ? (legScore + "/5") : "";
+      els.legibilityText.textContent = legOk ? (legFeedback || "No specific notes this time.") : "Couldn't score legibility from this photo.";
+      renderDimList(dims);
+
+      var accScore = Math.min(5, Math.max(1, Math.round(Number(acc.score))));
+      var accOk = !isNaN(accScore);
+      var errors = Array.isArray(acc.errors) ? acc.errors : [];
+      var summary = String(acc.summary || "").trim();
+      if(accOk){
+        els.accuracySection.hidden = false;
+        els.accuracyScore.textContent = accScore + "/5";
+        els.accuracyText.textContent = summary || (errors.length ? (errors.length + " difference(s) found.") : "No differences found — matched the passage well.");
+        renderErrorList(errors);
+      }
+      if(legOk || accOk) els.reviewCaveat.hidden = false;
+
+      record.legibility = legOk ? { score: legScore, feedback: legFeedback, dimensions: dims } : null;
+      record.accuracy = accOk ? { score: accScore, errors: errors, summary: summary } : null;
+      state.history = state.history.map(function(h){ return (h.date===record.date && (h.seq||1)===(record.seq||1)) ? record : h; });
+      lsSet("dd_history", trimForLocal(state.history));
+      renderAll();
+      if(record.synced && state.dbAvailable){
+        window.claude.use("db").then(function(db){
+          if(db) db.doc("sessions/"+record.date+"_"+record.seq).update({ legibility: record.legibility, accuracy: record.accuracy }).catch(function(){});
+        }).catch(function(){});
+      }
+    }).catch(function(e){
+      stopReviewTimer();
+      var code = (e && e.code) || "unknown";
+      var msg = (e && e.message) || "";
+      var copy = {
+        not_granted: "This viewer (or their organization) hasn't allowed this page to use Claude.",
+        images_unavailable: "This view can send text to Claude but not images — image analysis isn't supported here.",
+        not_declared: "This artifact's current version doesn't request the AI capability (a publish may have dropped it).",
+        capability_disabled: "This capability is granted but not usable in this view — the runtime serving this page may not support it, or it's turned off for this account/organization.",
+        capability_removed: "The specific AI method this page calls isn't available in the app/version serving this view.",
+        rate_limited: "Too many AI checks too quickly — wait a bit and try saving again.",
+        session_expired: "This viewer needs to sign in again before the AI check can run.",
+        sampling_disabled: "Claude isn't available for this account or organization.",
+        refused: "Claude declined to analyze this particular photo.",
+        empty_completion: "Claude returned no result for this photo — try again with a clearer photo.",
+        upstream_error: "A temporary service issue — try saving again."
+      };
+      els.legibilityLabel.classList.remove("pulsing");
+      els.legibilityLabel.textContent = "Review unavailable (" + code + ")";
+      els.legibilityText.textContent = (copy[code] || ("Couldn't read the handwriting this time — the photo and session are still saved.")) + (msg ? (" [" + msg + "]") : "");
+    });
+  }
+
+  function deleteSession(record){
+    state.history = state.history.filter(function(h){ return !(h.date===record.date && (h.seq||1)===(record.seq||1)); });
+    lsSet("dd_history", trimForLocal(state.history));
+    renderAll();
+
+    if(!record.synced) return;
+    if(!(window.claude && window.claude.use)) return;
+    var docId = record.date + "_" + (record.seq||1);
+    window.claude.use("db").then(function(db){
+      if(db) db.doc("sessions/"+docId).delete().catch(function(){});
+    }).catch(function(){});
+    if(record.photo && record.photo.kind==="shared" && record.photo.src){
+      var assetId = record.photo.src.replace(/^\/_blob\//, "");
+      if(assetId && assetId !== record.photo.src){
+        window.claude.use("assets").then(function(assets){
+          if(assets) assets.delete(assetId).catch(function(){});
+        }).catch(function(){});
+      }
+    }
+  }
+
+  function trimForLocal(history){
+    // Keep full photo data only for the most recent 20 entries to bound localStorage size.
+    var sorted = history.slice().sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+    return sorted.map(function(h, i){
+      if(i < 20) return h;
+      var copy = {}; for(var k in h) copy[k]=h[k];
+      copy.photo = h.photo ? { src: (h.photo.kind==="shared" ? h.photo.src : null) } : null;
+      return copy;
+    });
+  }
+
+  function saveRecord(record){
+    return new Promise(function(resolve){
+      var canSync = state.dbAvailable && state.assetsAvailable && finishData.photoBlob;
+      if(!canSync){
+        resolve(record);
+        return;
+      }
+      window.claude.use("assets").then(function(assets){
+        if(!assets){ resolve(record); return; }
+        assets.upload(finishData.photoBlob, {type:"image/jpeg"}).then(function(res){
+          window.claude.use("db").then(function(db){
+            if(!db){ resolve(record); return; }
+            var doc = {
+              date: record.date, seq: record.seq, topic: record.topic, durationSec: record.durationSec,
+              sentences: record.sentences, wordCount: record.wordCount, wpm: record.wpm,
+              passageText: record.passageText, note: record.note,
+              photoId: res.id, savedAt: new Date().toISOString()
+            };
+            db.collection("sessions").doc(record.date + "_" + record.seq).set(doc).then(function(){
+              record.synced = true;
+              record.photo = { kind:"shared", src: res.url };
+              resolve(record);
+            }).catch(function(){ resolve(record); });
+          }).catch(function(){ resolve(record); });
+        }).catch(function(){ resolve(record); });
+      }).catch(function(){ resolve(record); });
+    });
+  }
+
+  /* ---------------- Start button ---------------- */
+  els.startBtn.addEventListener("click", function(){
+    if(!state.useCustom && !state.currentPassage) state.currentPassage = pickPassage();
+    startPractice();
+  });
+
+  /* ---------------- Capability wiring ---------------- */
+  /* ---------------- Dashboard: trend charts ---------------- */
+  function buildTrendChart(container, opts){
+    // opts: { title, points:[{label,value}], color, min, max, decimals, unit }
+    container.innerHTML = "";
+    var h3 = document.createElement("h3"); h3.textContent = opts.title;
+    container.appendChild(h3);
+    if(!opts.points.length){
+      var empty = document.createElement("div");
+      empty.className = "chart-empty";
+      empty.textContent = "No data yet — this fills in as sessions are saved.";
+      container.appendChild(empty);
+      return;
+    }
+    var avg = opts.points.reduce(function(s,p){return s+p.value;},0) / opts.points.length;
+    var avgLine = document.createElement("div"); avgLine.className = "avg";
+    avgLine.textContent = "Average: " + avg.toFixed(opts.decimals) + (opts.unit||"") + " over " + opts.points.length + " session" + (opts.points.length===1?"":"s");
+    container.appendChild(avgLine);
+    if(opts.caption){
+      var capEl = document.createElement("div");
+      capEl.style.cssText = "font-size:11px;color:var(--ink-faint);margin:-4px 0 8px;line-height:1.4;";
+      capEl.textContent = opts.caption;
+      container.appendChild(capEl);
+    }
+
+    var W = 560, H = 160, padL = 34, padR = 12, padT = 12, padB = 22;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var vMin = opts.min !== undefined ? opts.min : Math.min.apply(null, opts.points.map(function(p){return p.value;}));
+    var vMax = opts.max !== undefined ? opts.max : Math.max.apply(null, opts.points.map(function(p){return p.value;}));
+    if(vMax === vMin){ vMax += 1; vMin -= 1; }
+    function xAt(i){ return opts.points.length>1 ? padL + (i/(opts.points.length-1))*innerW : padL + innerW/2; }
+    function yAt(v){ return padT + innerH - ((v-vMin)/(vMax-vMin))*innerH; }
+
+    var wrap = document.createElement("div"); wrap.className = "chart-wrap";
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNS,"svg");
+    svg.setAttribute("viewBox","0 0 "+W+" "+H);
+    svg.setAttribute("class","chart-svg");
+    svg.setAttribute("role","img");
+    svg.setAttribute("aria-label", opts.title + " trend chart");
+
+    // gridlines (3 horizontal steps)
+    [0,0.5,1].forEach(function(f){
+      var y = padT + innerH*(1-f);
+      var line = document.createElementNS(svgNS,"line");
+      line.setAttribute("x1",padL); line.setAttribute("x2",W-padR);
+      line.setAttribute("y1",y); line.setAttribute("y2",y);
+      line.setAttribute("stroke","var(--chart-grid)"); line.setAttribute("stroke-width","1");
+      svg.appendChild(line);
+      var val = vMin + (vMax-vMin)*f;
+      var lbl = document.createElementNS(svgNS,"text");
+      lbl.setAttribute("x", padL-6); lbl.setAttribute("y", y+3);
+      lbl.setAttribute("text-anchor","end"); lbl.setAttribute("font-size","9");
+      lbl.setAttribute("fill","var(--ink-faint)");
+      lbl.textContent = val.toFixed(opts.decimals);
+      svg.appendChild(lbl);
+    });
+    // baseline
+    var base = document.createElementNS(svgNS,"line");
+    base.setAttribute("x1",padL); base.setAttribute("x2",W-padR);
+    base.setAttribute("y1",padT+innerH); base.setAttribute("y2",padT+innerH);
+    base.setAttribute("stroke","var(--chart-axis)"); base.setAttribute("stroke-width","1");
+    svg.appendChild(base);
+
+    // line path
+    var d = opts.points.map(function(p,i){ return (i===0?"M":"L") + xAt(i).toFixed(1) + " " + yAt(p.value).toFixed(1); }).join(" ");
+    var path = document.createElementNS(svgNS,"path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill","none");
+    path.setAttribute("stroke", opts.color);
+    path.setAttribute("stroke-width","2");
+    path.setAttribute("stroke-linecap","round");
+    path.setAttribute("stroke-linejoin","round");
+    svg.appendChild(path);
+
+    // markers
+    var markers = [];
+    opts.points.forEach(function(p,i){
+      var c = document.createElementNS(svgNS,"circle");
+      c.setAttribute("cx", xAt(i)); c.setAttribute("cy", yAt(p.value));
+      c.setAttribute("r","3.5"); c.setAttribute("fill", opts.color);
+      c.setAttribute("stroke","var(--paper-2)"); c.setAttribute("stroke-width","1.5");
+      svg.appendChild(c);
+      markers.push({x:xAt(i), y:yAt(p.value), p:p});
+    });
+    // x-axis first/last labels only
+    [0, opts.points.length-1].forEach(function(i){
+      if(i<0) return;
+      var lbl = document.createElementNS(svgNS,"text");
+      lbl.setAttribute("x", xAt(i)); lbl.setAttribute("y", H-4);
+      lbl.setAttribute("text-anchor", i===0 ? "start" : "end");
+      lbl.setAttribute("font-size","9"); lbl.setAttribute("fill","var(--ink-faint)");
+      lbl.textContent = opts.points[i].label;
+      svg.appendChild(lbl);
+    });
+
+    wrap.appendChild(svg);
+    var tip = document.createElement("div"); tip.className = "chart-tip";
+    wrap.appendChild(tip);
+
+    svg.addEventListener("mousemove", function(e){
+      var rect = svg.getBoundingClientRect();
+      var mx = (e.clientX - rect.left) / rect.width * W;
+      var nearest = markers.reduce(function(best,m){
+        return Math.abs(m.x-mx) < Math.abs(best.x-mx) ? m : best;
+      }, markers[0]);
+      var px = nearest.x/W*rect.width, py = nearest.y/H*rect.height;
+      tip.style.left = px+"px"; tip.style.top = py+"px"; tip.style.opacity = "1";
+      tip.textContent = nearest.p.label + ": " + nearest.p.value.toFixed(opts.decimals) + (opts.unit||"");
+    });
+    svg.addEventListener("mouseleave", function(){ tip.style.opacity = "0"; });
+
+    container.appendChild(wrap);
+
+    var toggle = document.createElement("button");
+    toggle.className = "table-toggle"; toggle.type = "button";
+    toggle.textContent = "View as table";
+    var table = document.createElement("table");
+    table.className = "chart-table"; table.hidden = true;
+    table.innerHTML = "<tr><th>Session</th><th>Value</th></tr>" + opts.points.map(function(p){
+      return "<tr><td>"+p.label+"</td><td>"+p.value.toFixed(opts.decimals)+(opts.unit||"")+"</td></tr>";
+    }).join("");
+    toggle.addEventListener("click", function(){
+      table.hidden = !table.hidden;
+      toggle.textContent = table.hidden ? "View as table" : "Hide table";
+    });
+    container.appendChild(toggle);
+    container.appendChild(table);
+  }
+
+  function renderDashboard(){
+    var sorted = state.history.slice().sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return (a.seq||1) - (b.seq||1);
+    });
+    function labelFor(h){ return h.date.slice(5) + (h.seq>1 ? ("#"+h.seq) : ""); }
+
+    var wpmPts = sorted.filter(function(h){return h.wpm;}).map(function(h){ return {label:labelFor(h), value:h.wpm}; });
+    var legPts = sorted.filter(function(h){return h.legibility && h.legibility.score;}).map(function(h){ return {label:labelFor(h), value:h.legibility.score}; });
+    var accPts = sorted.filter(function(h){return h.accuracy && h.accuracy.score;}).map(function(h){ return {label:labelFor(h), value:h.accuracy.score}; });
+
+    els.avgWpm.textContent = wpmPts.length ? Math.round(wpmPts.reduce(function(s,p){return s+p.value;},0)/wpmPts.length) : "–";
+    els.avgLeg.textContent = legPts.length ? (legPts.reduce(function(s,p){return s+p.value;},0)/legPts.length).toFixed(1) : "–";
+    els.avgAcc.textContent = accPts.length ? (accPts.reduce(function(s,p){return s+p.value;},0)/accPts.length).toFixed(1) : "–";
+
+    buildTrendChart(els.chartSpeed, { title:"Writing speed", points:wpmPts, color:"var(--series-speed)", decimals:0, unit:" wpm", min:0,
+      caption:"Whole session, not just the pen: listening and replays count too — should climb as fewer replays are needed." });
+    buildTrendChart(els.chartLegibility, { title:"Legibility", points:legPts, color:"var(--series-legibility)", decimals:1, unit:"/5", min:1, max:5,
+      caption:"AI-scored, so small session-to-session wiggles are normal — look at the trend, not any single point." });
+    buildTrendChart(els.chartAccuracy, { title:"Accuracy", points:accPts, color:"var(--series-accuracy)", decimals:1, unit:"/5", min:1, max:5,
+      caption:"AI-scored, so small session-to-session wiggles are normal — look at the trend, not any single point." });
+  }
+
+  function progressEntries(){
+    return state.history.filter(function(h){ return h.photo && h.photo.src; }).sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return (a.seq||1) - (b.seq||1);
+    });
+  }
+  function moveProgress(side, delta){
+    var entries = progressEntries();
+    var next = progressIdx[side] + delta;
+    if(side === "left"){
+      if(next < 0 || next >= progressIdx.right) return;
+    } else {
+      if(next <= progressIdx.left || next >= entries.length) return;
+    }
+    progressIdx[side] = next;
+    renderProgress();
+  }
+  function fillProgressCol(entry, dateEl, imgEl, chipsEl){
+    dateEl.textContent = entry.date + (entry.seq>1 ? (" · session "+entry.seq) : "");
+    imgEl.src = entry.photo.src;
+    chipsEl.innerHTML = "";
+    if(entry.wpm){ var c1=document.createElement("span"); c1.textContent = entry.wpm+" wpm"; chipsEl.appendChild(c1); }
+    if(entry.legibility && entry.legibility.score){ var c2=document.createElement("span"); c2.textContent = "legible "+entry.legibility.score+"/5"; chipsEl.appendChild(c2); }
+    if(entry.accuracy && entry.accuracy.score){ var c3=document.createElement("span"); c3.textContent = "accurate "+entry.accuracy.score+"/5"; chipsEl.appendChild(c3); }
+  }
+  function renderProgress(){
+    var entries = progressEntries();
+    if(entries.length < 2){
+      els.progressEmpty.hidden = false;
+      els.progressBody.hidden = true;
+      return;
+    }
+    els.progressEmpty.hidden = true;
+    els.progressBody.hidden = false;
+    fillProgressCol(entries[progressIdx.left], els.progLeftDate, els.progLeftPhoto, els.progLeftChips);
+    fillProgressCol(entries[progressIdx.right], els.progRightDate, els.progRightPhoto, els.progRightChips);
+    els.progLeftPrev.disabled = progressIdx.left <= 0;
+    els.progLeftNext.disabled = progressIdx.left >= progressIdx.right - 1;
+    els.progRightPrev.disabled = progressIdx.right <= progressIdx.left + 1;
+    els.progRightNext.disabled = progressIdx.right >= entries.length - 1;
+  }
+
+  function initCapabilities(){
+    if(!(window.claude && window.claude.use)) return;
+    window.claude.use("db").then(function(db){
+      if(!db) return;
+      state.dbAvailable = true;
+      els.syncState.textContent = "synced";
+      var q = db.collection("sessions").orderBy("date","desc").limit(60);
+      q.onSnapshot(function(snap){
+        var remote = snap.docs.map(function(d){
+          var v = d.data();
+          return {
+            date: v.date, seq: v.seq || 1, topic: v.topic, durationSec: v.durationSec, sentences: v.sentences,
+            wordCount: v.wordCount || 0, wpm: v.wpm || null,
+            passageText: v.passageText || "", note: v.note, synced: true,
+            legibility: v.legibility || null, accuracy: v.accuracy || null,
+            photo: v.photoId ? { kind:"shared", src: "/_blob/" + v.photoId } : null
+          };
+        });
+        // merge: remote is source of truth; keep any local-only entries whose (date,seq) isn't present remotely
+        var remoteKeys = {}; remote.forEach(function(r){ remoteKeys[r.date+"_"+r.seq]=true; });
+        var localOnly = state.history.filter(function(h){ return !remoteKeys[h.date+"_"+(h.seq||1)] && !h.synced; });
+        state.history = remote.concat(localOnly);
+        lsSet("dd_history", trimForLocal(state.history));
+        renderAll();
+      }, function(){ /* ignore live errors, keep local view */ });
+    }).catch(function(){});
+    window.claude.use("assets").then(function(assets){
+      state.assetsAvailable = !!assets;
+    }).catch(function(){});
+    window.claude.use("sample").then(function(sample){
+      if(!sample) return;
+      return sample.limits().then(function(limits){
+        state.sampleAvailable = !!(limits && limits.images);
+      });
+    }).catch(function(){});
+  }
+
+  /* ---------------- Hot reload state (in-progress session) ---------------- */
+  function boot(initial){
+    renderGreeting();
+    var bootFocus = computeWeeklyFocus(state.history);
+    state.currentPassage = pickPassage(bootFocus ? PASSAGE_SKILL_FOR_DIM[bootFocus.name] : null);
+    els.passageTopicLabel.textContent = "Topic: " + state.currentPassage.topic;
+    els.storageWarning.hidden = LS_OK;
+    renderAll();
+    initCapabilities();
+  }
+  if(window.claude && window.claude.hot){
+    window.claude.hot.ready ? window.claude.hot.ready(boot) : boot(window.claude.hot.data || {});
+  } else {
+    boot({});
+  }
+})();
+</script>

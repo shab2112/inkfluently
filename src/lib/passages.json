@@ -1,0 +1,322 @@
+[
+  {
+    "id": "space",
+    "topic": "Space & astronomy",
+    "sentences": [
+      "Every star visible to the naked eye belongs to our own galaxy, a flattened disk some hundred thousand light-years across.",
+      "Light from the nearest large galaxy, Andromeda, left its stars two and a half million years ago; we are seeing its ancient past, not its present.",
+      "Astronomers once believed the universe was static and eternal — a calm, unchanging backdrop.",
+      "Edwin Hubble's observations in the 1920s overturned that idea completely: the galaxies were rushing apart, and the universe itself was expanding."
+    ]
+  },
+  {
+    "id": "ocean",
+    "topic": "The deep ocean",
+    "sentences": [
+      "Sunlight fades to darkness only two hundred meters below the surface, yet life continues for thousands of meters further down.",
+      "In that permanent night, some fish generate their own light through a process called bioluminescence.",
+      "The pressure at the ocean's deepest point, the Mariana Trench, is over a thousand times greater than at sea level.",
+      "Despite these extremes, scientists keep finding creatures there: pale, strange, and perfectly adapted to a world without sun."
+    ]
+  },
+  {
+    "id": "invention",
+    "topic": "A quiet invention",
+    "sentences": [
+      "In 1943, a Swiss engineer named George de Mestral returned from a walk and noticed burrs clinging stubbornly to his dog's fur.",
+      "Curious, he examined one under a microscope and found tiny hooks that caught on anything looped, like fabric or hair.",
+      "It took him nearly a decade of failed attempts before he perfected a fastener based on that hook-and-loop design.",
+      "Today we call it Velcro, and it holds together everything from sneakers to spacesuits."
+    ]
+  },
+  {
+    "id": "focus",
+    "topic": "Attention & habit",
+    "sentences": [
+      "Willpower, researchers have found, behaves less like a fixed trait and more like a muscle that tires with use.",
+      "A person who resists one temptation in the morning often has less resistance left by evening.",
+      "That is why habits matter more than willpower: a habit runs quietly, without demanding a decision each time.",
+      "\"Motivation gets you started,\" one coach likes to say; \"habit is what keeps you going after motivation leaves the room.\""
+    ]
+  },
+  {
+    "id": "discipline",
+    "topic": "Sport & discipline",
+    "sentences": [
+      "The fastest swimmers in the world spend far more hours training than competing — often a ratio of a thousand to one.",
+      "Coaches call this the iceberg principle: the visible race is only the tip of a much larger, unseen effort.",
+      "Small, unglamorous repetitions — a turn practiced a hundred times, a stroke corrected by inches — rarely make headlines.",
+      "Yet they are almost always the real difference between a good athlete and a great one."
+    ]
+  },
+  {
+    "id": "ai",
+    "topic": "Machines that learn",
+    "sentences": [
+      "A modern language model does not memorize sentences the way a student memorizes a poem; it learns statistical patterns from enormous amounts of text.",
+      "Given a sentence's beginning, it estimates which word is likely to come next, then the next, one probability at a time.",
+      "This is why such systems can write fluently about topics they were never explicitly taught, yet also state confident nonsense.",
+      "Understanding the difference between the two remains one of the central challenges in the field."
+    ]
+  },
+  {
+    "id": "weather",
+    "topic": "Storms & weather",
+    "sentences": [
+      "A single lightning bolt can heat the surrounding air to roughly thirty thousand kelvin — hotter, for an instant, than the surface of the sun.",
+      "That superheated air expands violently and then contracts, producing the shockwave we hear as thunder.",
+      "Because light travels far faster than sound, counting the seconds between a flash and its rumble tells you roughly how many miles away the storm sits.",
+      "Five seconds equals about one mile; the shorter the gap, the closer the danger."
+    ]
+  },
+  {
+    "id": "travel",
+    "topic": "A journey remembered",
+    "sentences": [
+      "The train climbed slowly out of the valley, and the fields below shrank until they looked like a patchwork quilt someone had left unfolded.",
+      "At the summit, the conductor made an announcement in three languages, none of which I understood completely, and everyone laughed anyway.",
+      "I remember thinking that a good journey doesn't need to be explained; it only needs to be noticed.",
+      "By the time we reached the coast, the sky had turned the color of a bruise — deep purple fading into orange."
+    ]
+  },
+  {
+    "id": "music",
+    "topic": "Sound & music",
+    "sentences": [
+      "A piano string vibrating at 440 cycles per second produces the note musicians call middle A, the reference point for tuning an entire orchestra.",
+      "Double that frequency and you get the same note, one octave higher; the ear perceives them as versions of a single sound.",
+      "This mathematical relationship — doubling, halving, simple ratios — explains why certain chords sound pleasant and others sound tense.",
+      "Bach, working two centuries before anyone understood the physics, seemed to grasp the pattern by instinct alone."
+    ]
+  },
+  {
+    "id": "friendship",
+    "topic": "On friendship",
+    "sentences": [
+      "A friend, someone once wrote, is a person with whom you dare to be yourself.",
+      "That kind of honesty is rarer than it sounds; most relationships run on small, comfortable performances.",
+      "Real friendship tends to reveal itself not in celebration but in difficulty — who shows up, who stays quiet, who simply sits with you.",
+      "It rarely announces itself; it is usually recognized only afterward, in hindsight."
+    ]
+  },
+  {
+    "id": "volcano",
+    "topic": "Volcanoes",
+    "sentences": [
+      "Beneath a volcano lies a chamber of molten rock, kept liquid by pressure and heat far below the surface.",
+      "When gas trapped inside that magma can no longer stay dissolved, it expands rapidly, and the mountain erupts.",
+      "Some eruptions are quiet, releasing slow rivers of lava; others are explosive, hurling ash for miles into the sky.",
+      "The difference usually comes down to one thing: how thick and gas-rich the magma happens to be."
+    ]
+  },
+  {
+    "id": "rome",
+    "topic": "Ancient engineering",
+    "sentences": [
+      "Roman engineers built roads so durable that some stretches are still walked on today, nearly two thousand years later.",
+      "Their secret was layering: a foundation of large stones, then gravel, then sand, topped finally with tightly fitted paving.",
+      "Aqueducts followed the same obsession with precision, carrying water for miles using nothing but a carefully measured, gentle slope.",
+      "Without pumps or engines, gravity alone did all the work."
+    ]
+  },
+  {
+    "id": "climate",
+    "topic": "A changing climate",
+    "sentences": [
+      "Coral reefs cover less than one percent of the ocean floor, yet they shelter roughly a quarter of all known marine species.",
+      "When ocean temperatures rise even slightly above normal, corals expel the colorful algae living inside their tissue — a process called bleaching.",
+      "A bleached reef isn't dead, not yet; it is stressed, pale, and running out of time.",
+      "Given cooler water and enough patience, some reefs do recover; many, unfortunately, do not get the chance."
+    ]
+  },
+  {
+    "id": "language",
+    "topic": "Language & meaning",
+    "sentences": [
+      "The word \"nostalgia\" was coined in 1688 by a Swiss doctor who considered it a genuine medical illness — a severe, even fatal, homesickness.",
+      "Soldiers stationed far from home were diagnosed with it and, in some recorded cases, treated with opium or a return journey.",
+      "Only later did the word soften into something gentler: a bittersweet, almost pleasant longing for the past.",
+      "Few words have traveled so far from where they began."
+    ]
+  },
+  {
+    "id": "food",
+    "topic": "Food & culture",
+    "sentences": [
+      "Salt was once so valuable that Roman soldiers were partly paid in it, which is where the word \"salary\" comes from.",
+      "Entire trade routes across the ancient world existed largely to move salt from where it was mined to where it was scarce.",
+      "Today it sits, nearly free, in a shaker on every table — a small object whose history most of us never taste.",
+      "Value, it turns out, is rarely permanent; it depends entirely on what happens to be rare."
+    ]
+  },
+  {
+    "id": "migration",
+    "topic": "Animal migration",
+    "sentences": [
+      "The Arctic tern flies from one pole to the other and back again each year, covering roughly seventy thousand kilometers.",
+      "Over a lifetime that can stretch past thirty years, the total distance is close to three round trips to the moon.",
+      "No one fully understands how the bird navigates with such accuracy, though scientists suspect it senses the Earth's magnetic field.",
+      "It is, by any measure, one of the longest journeys any animal makes on purpose."
+    ]
+  },
+  {
+    "id": "architecture",
+    "topic": "Building tall",
+    "sentences": [
+      "A skyscraper does not stand still; on a windy day, its top floors can sway more than a meter from side to side.",
+      "Engineers design for this movement rather than against it, because a perfectly rigid tower would crack under the same forces a flexible one absorbs.",
+      "Some buildings even include a massive pendulum near the top, swinging opposite the wind to cancel out the motion.",
+      "What looks like stillness from the street is often, quietly, a controlled and constant sway."
+    ]
+  },
+  {
+    "id": "time",
+    "topic": "Time & attention",
+    "sentences": [
+      "A famous experiment once asked people to estimate one minute passing without a clock; bored participants guessed far too early, while absorbed ones guessed far too late.",
+      "Time, it turns out, is measured less by seconds than by attention — how much of it a moment demands.",
+      "That may explain why a difficult hour of practice can feel endless, while an hour of something engaging disappears without notice.",
+      "The clock never changes; only our relationship to it does."
+    ]
+  },
+  {
+    "id": "glass",
+    "topic": "The chemistry of glass",
+    "sentences": [
+      "Glass is, strictly speaking, neither solid nor liquid; chemists call it an amorphous solid, its atoms frozen in a disordered, liquid-like arrangement.",
+      "It forms when sand — mostly silica — is heated past 1,700 degrees Celsius and then cooled too quickly for its atoms to settle into a neat crystal.",
+      "Ancient glassmakers in Mesopotamia discovered this by accident, likely while firing pottery near sandy riverbanks.",
+      "Modern windows still rely on the same basic trick, just cooled far more evenly."
+    ]
+  },
+  {
+    "id": "memory",
+    "topic": "How memory works",
+    "sentences": [
+      "Every time you recall a memory, your brain doesn't play it back like a recording; it reconstructs it, slightly differently, from scattered fragments.",
+      "This is why eyewitness testimony is far less reliable than juries once assumed: confidence and accuracy are not the same thing.",
+      "Researchers call this reconsolidation, and it means memory is less a filing cabinet than a story we keep quietly rewriting.",
+      "\"You are not remembering the event,\" one neuroscientist put it; \"you are remembering the last time you remembered it.\""
+    ]
+  },
+  {
+    "id": "bridges",
+    "topic": "Suspension bridges",
+    "sentences": [
+      "A suspension bridge holds its deck aloft using massive steel cables, each one built from thousands of individual wires no thicker than a pencil.",
+      "Spun in place, strand by strand, a single main cable can take over a year to complete.",
+      "The genius of the design is that the whole structure works in tension, not compression — every part pulling rather than pushing.",
+      "That is also why wind, not weight, is usually an engineer's greatest worry."
+    ]
+  },
+  {
+    "id": "bees",
+    "topic": "How bees communicate",
+    "sentences": [
+      "A returning honeybee tells the rest of the hive where to find food using a waggle dance, its body language.",
+      "The angle of the dance relative to vertical marks the direction to fly relative to the sun; the duration marks the distance.",
+      "Other bees crowd around to feel the vibrations in complete darkness, since the hive has no light to see by.",
+      "Karl von Frisch spent decades decoding this and won a Nobel Prize for it in 1973."
+    ]
+  },
+  {
+    "id": "currency",
+    "topic": "The idea of money",
+    "sentences": [
+      "Long before coins existed, some societies used enormous stone discs as currency on the Micronesian island of Yap.",
+      "A stone too large to move might change owners without ever being touched — everyone simply agreed on whose it was.",
+      "Modern digital payments, oddly enough, work the same way: no object changes hands, only a shared record of who owns what.",
+      "Money, in the end, has always been less a thing than an agreement."
+    ]
+  },
+  {
+    "id": "desert",
+    "topic": "Life in the desert",
+    "sentences": [
+      "The kangaroo rat, a small desert rodent, can survive its entire life without ever drinking a single drop of water.",
+      "It gets all the moisture it needs from the seeds it eats, and its kidneys are so efficient that almost none is wasted.",
+      "Its burrow stays cool and humid even when the surface above bakes past fifty degrees Celsius.",
+      "Survival here is less about enduring the heat than about avoiding it entirely."
+    ]
+  },
+  {
+    "id": "printing",
+    "topic": "The printing press",
+    "sentences": [
+      "Before Gutenberg, a single hand-copied Bible could take a monk more than a year to finish.",
+      "His press, developed around 1440, combined movable metal type with a modified wine press — an old technology repurposed for a new one.",
+      "Within fifty years, an estimated twenty million books had been printed across Europe, up from perhaps a few thousand.",
+      "Ideas that once traveled at the speed of a single scribe's hand suddenly moved as fast as paper could be shipped."
+    ]
+  },
+  {
+    "id": "color",
+    "topic": "Why the sky is blue",
+    "sentences": [
+      "Sunlight looks white, but it's secretly made of every color mixed together, each with its own wavelength.",
+      "As it passes through the atmosphere, shorter wavelengths — blues and violets — scatter far more than longer ones like red.",
+      "Our eyes are more sensitive to blue than violet, which is why the sky reads as blue rather than purple.",
+      "At sunset, when light travels through more atmosphere, most of that blue has already scattered away, leaving the reds and oranges behind."
+    ]
+  },
+  {
+    "id": "habit-loop",
+    "topic": "The habit loop",
+    "sentences": [
+      "Researchers describe every habit as a loop with three parts: a cue, a routine, and a reward.",
+      "The cue might be a time of day, a location, or even a feeling; the routine is the behavior itself; the reward is what keeps the loop running.",
+      "Breaking a bad habit rarely works by willpower alone — it works by keeping the same cue and reward but swapping the routine in between.",
+      "This is why habits are so hard to delete and so much easier to redirect."
+    ]
+  },
+  {
+    "id": "ants",
+    "topic": "Ant colonies",
+    "sentences": [
+      "A single ant is almost mindless, following simple chemical trails without any sense of the bigger picture.",
+      "Yet a whole colony can build elaborate tunnel networks, farm fungus, and even wage coordinated wars between rival nests.",
+      "Scientists call this emergent behavior: complexity arising from many simple parts, with no single ant in charge.",
+      "Some researchers think a large colony behaves less like a group of individuals and more like one distributed organism."
+    ]
+  },
+  {
+    "id": "paper",
+    "topic": "The invention of paper",
+    "sentences": [
+      "Paper was invented in China around 105 CE by a court official named Cai Lun, who mixed mulberry bark, hemp, and old fishnets with water.",
+      "Before that, writing surfaces were expensive: silk in China, papyrus in Egypt, thin sheets of animal skin called parchment in Europe.",
+      "The technique took centuries to spread west, reaching the Middle East by the 8th century and Europe only by the 12th.",
+      "A material invented to save silk ended up outlasting nearly everything written on it."
+    ]
+  },
+  {
+    "id": "clouds",
+    "topic": "Reading the clouds",
+    "sentences": [
+      "Sailors and farmers once forecast weather without any instruments, just by learning to read the shapes overhead.",
+      "A mackerel sky — thin, rippled clouds — often meant a change in weather within a day or two.",
+      "Tall, anvil-shaped clouds signal a thunderstorm brewing, its top flattened by high-altitude winds.",
+      "Long before satellites, this kind of careful, patient observation was the only forecast anyone had."
+    ]
+  },
+  {
+    "id": "silk",
+    "topic": "The Silk Road",
+    "sentences": [
+      "For over a thousand years, the Silk Road was not one road but a shifting network of trade routes connecting China to the Mediterranean.",
+      "Along it traveled silk, spices, and paper — but also ideas, religions, and diseases, carried as easily as goods.",
+      "No single merchant ever traveled its entire length; goods passed hand to hand between merchants who never met.",
+      "It was, in a sense, an early and very slow version of a global supply chain."
+    ]
+  },
+  {
+    "id": "sleep",
+    "topic": "Why we dream",
+    "sentences": [
+      "During REM sleep, the stage most associated with vivid dreaming, the brain is almost as active as when fully awake.",
+      "Yet the body goes nearly paralyzed, a safety mechanism that stops us from acting out whatever we're dreaming.",
+      "Some researchers believe dreams help consolidate memory; others think they simply reflect random neural noise the mind tries to narrate.",
+      "No single theory has fully explained why a resting brain would bother inventing stories at all."
+    ]
+  }
+]

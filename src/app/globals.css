@@ -1,0 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+:root {
+  --paper: #f2f4ee;
+  --paper-2: #e7ebe0;
+  --paper-3: #dde3d5;
+  --rule: #cdd4c3;
+  --ink: #1f2a22;
+  --ink-soft: #57645b;
+  --ink-faint: #8a968c;
+  --accent: #bd4416;
+  --accent-ink: #ffffff;
+  --accent-soft: #f2ddd0;
+  --good: #2c6b4d;
+  --good-soft: #dbe8de;
+  --gold: #a8730f;
+  --gold-soft: #f1e2bf;
+  --danger: #a3311a;
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: "Fraunces", Georgia, serif;
+}
+
+.font-serif-brand {
+  font-family: "Fraunces", Georgia, serif;
+}
+
+.font-mono-ink {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
