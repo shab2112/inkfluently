@@ -365,7 +365,7 @@ export function FinishView({
                 <>
                   <div className="text-sm font-bold">Reading the handwriting…</div>
                   <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
-                    This can take up to a minute — please keep this page open ({reviewSeconds}s)…
+                    This can take a minute or two — please keep this page open ({reviewSeconds}s)…
                   </div>
                 </>
               )}
