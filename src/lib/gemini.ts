@@ -22,9 +22,13 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     "Do two assessments, and make sure they AGREE WITH EACH OTHER (see the note at the end — this matters):\n" +
     "1. LEGIBILITY — judge how easy the handwriting itself is to read, broken into these five named " +
     "dimensions (not content/accuracy):\n" +
-    "   - letter_formation: are individual letters well-shaped (watch for reversed b/d, malformed g/y, unclosed a/o)?\n" +
+    "   - letter_formation: are individual letters well-shaped (watch for reversed b/d, malformed g/y, unclosed " +
+    "a/o, and — a small but documented factor — missing dots over i's or crosses on t's)?\n" +
     "   - size_consistency: do letters hold a consistent height, or does size wander within a word/line?\n" +
-    "   - spacing: consistent gaps between letters and words, not cramped or overly wide?\n" +
+    "   - spacing: consistent gaps between letters and words. Research on children's handwriting (Ayres, 1912, " +
+    "timed-reading study of 1,578 student samples) found this to be the single biggest factor in legibility — " +
+    "bigger than letter shape itself. Watch specifically for: words crowded together with no real gap between " +
+    "them, a line broken mid-word so it reads like two separate words, and inconsistent gaps between lines.\n" +
     "   - baseline: does writing sit on the line, or drift up/down across a line?\n" +
     "   - slant: is the slant consistent, or does it vary erratically letter to letter?\n" +
     '   For each dimension give a flag of exactly "good" or "needs_work", and when it\'s "needs_work" a short, ' +
