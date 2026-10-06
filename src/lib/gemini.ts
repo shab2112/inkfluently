@@ -74,14 +74,17 @@ export async function reviewHandwritingPhoto(
       "GEMINI_API_KEY is not configured on the server."
     );
   }
-  // Defaults to Gemma 3 per docs/spec.md §7 (free on Google AI Studio for
+  // Defaults to Gemma 4 per docs/spec.md §7 (free on Google AI Studio for
   // dev/testing — paid tier required before any real user's photos are sent,
-  // see §7/§10). Known, accepted risk: some accounts report gemma-3-27b-it
-  // rejecting image input ("Image input modality is not enabled") despite
-  // being announced as multimodal. If this call fails with code
-  // "image_input_unsupported" below, set GEMINI_MODEL=gemini-2.5-flash in
-  // .env.local, which reliably accepts images on every account.
-  const model = process.env.GEMINI_MODEL || "gemma-3-27b-it";
+  // see §7/§10). gemma-3-27b-it (an earlier default) no longer exists in the
+  // API's model list as of Oct 2026 (404) — superseded by Gemma 4. Verified
+  // directly against the API with a real photo: gemma-4-26b-a4b-it reliably
+  // accepts image input; its sibling gemma-4-31b-it does not (failed
+  // consistently with a 500/connection-reset on every attempt) — don't use
+  // that one. If this call ever fails with code "image_input_unsupported"
+  // below, set GEMINI_MODEL=gemini-2.5-flash in .env.local, which reliably
+  // accepts images on every account regardless of Gemma's availability.
+  const model = process.env.GEMINI_MODEL || "gemma-4-26b-a4b-it";
   const prompt = buildReviewPrompt(passageText, userAge);
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -122,7 +125,13 @@ export async function reviewHandwritingPhoto(
   }
 
   const json = await res.json();
-  const text: string | undefined = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+  // Reasoning models (e.g. Gemma 4) return multiple parts: an internal
+  // chain-of-thought part marked `thought: true` first, then the real answer
+  // in a later part — verified directly against the API. Skip thought parts
+  // rather than assuming parts[0] is the answer (that was the actual cause of
+  // "bad_json" failures: we were trying to JSON.parse the reasoning trace).
+  const parts: Array<{ text?: string; thought?: boolean }> = json?.candidates?.[0]?.content?.parts || [];
+  const text = parts.find((p) => !p.thought && p.text)?.text;
   if (!text) {
     throw new GeminiReviewError("empty_completion", "Gemini returned no result for this photo.");
   }
