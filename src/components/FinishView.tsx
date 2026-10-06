@@ -266,7 +266,10 @@ export function FinishView({
                 {gateStatus === "done" && (ocrResult?.status === "check_failed" || faceResult?.status === "check_failed") && (
                   <div className="text-[11px] mt-1.5" style={{ color: "var(--ink-faint)" }}>
                     (The automatic photo check didn&apos;t run this time — this is a best-effort filter, not a
-                    guarantee, so saving still works normally.)
+                    guarantee, so saving still works normally.
+                    {ocrResult?.status === "check_failed" && ocrResult.reason ? ` Text check: ${ocrResult.reason}.` : ""}
+                    {faceResult?.status === "check_failed" && faceResult.reason ? ` Face check: ${faceResult.reason}.` : ""}
+                    )
                   </div>
                 )}
               </div>

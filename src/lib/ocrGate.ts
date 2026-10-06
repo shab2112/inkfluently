@@ -29,6 +29,7 @@ export type OcrGateResult = {
   matchedWords: string[];
   checkedWordCount: number;
   ocrTextSample: string;
+  reason?: string;
 };
 
 export async function runOcrPhraseMatch(
@@ -67,7 +68,8 @@ export async function runOcrPhraseMatch(
   } catch (err) {
     // Best-effort filter (spec §6): a library/network failure should not brick
     // the save flow. Treat as inconclusive, not as a block.
+    const reason = err instanceof Error ? err.message : String(err);
     console.error("OCR phrase-match check failed:", err);
-    return { status: "check_failed", matchedWords: [], checkedWordCount: passageWords.length, ocrTextSample: "" };
+    return { status: "check_failed", matchedWords: [], checkedWordCount: passageWords.length, ocrTextSample: "", reason };
   }
 }

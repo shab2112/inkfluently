@@ -43,6 +43,7 @@ function getDetector(): Promise<FaceDetector> {
 export type FaceGateResult = {
   status: "clear" | "face_detected" | "check_failed";
   faceCount: number;
+  reason?: string;
 };
 
 export async function runFaceCheck(photoDataUrl: string): Promise<FaceGateResult> {
@@ -54,14 +55,15 @@ export async function runFaceCheck(photoDataUrl: string): Promise<FaceGateResult
       getDetector(),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
     ]);
-    if (!detector) return { status: "check_failed", faceCount: 0 };
+    if (!detector) return { status: "check_failed", faceCount: 0, reason: "Face-detection model took too long to load (20s)." };
     const img = await loadImage(photoDataUrl);
     const result = detector.detect(img);
     const faceCount = result.detections.length;
     return { status: faceCount > 0 ? "face_detected" : "clear", faceCount };
   } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
     console.error("Face-detection check failed:", err);
-    return { status: "check_failed", faceCount: 0 };
+    return { status: "check_failed", faceCount: 0, reason };
   }
 }
 
