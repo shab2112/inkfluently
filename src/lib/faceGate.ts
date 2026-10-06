@@ -10,6 +10,28 @@
 
 import type { FaceDetector } from "@mediapipe/tasks-vision";
 
+// MediaPipe's TFLite WASM runtime logs routine, successful init diagnostics
+// (e.g. "INFO: Created TensorFlow Lite XNNPACK delegate for CPU.") through
+// console.error instead of console.info — a known quirk of the underlying
+// C++-to-JS bridge, not an actual error. Left as-is, Next.js's dev overlay
+// treats it as a blocking "Console Error" on every single photo check. Filter
+// out only this specific, verified-benign message; everything else still
+// reaches console.error normally.
+if (typeof window !== "undefined" && !window.__faceGateConsolePatched) {
+  window.__faceGateConsolePatched = true;
+  const originalConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === "string" && args[0].includes("Created TensorFlow Lite XNNPACK delegate")) return;
+    originalConsoleError(...args);
+  };
+}
+
+declare global {
+  interface Window {
+    __faceGateConsolePatched?: boolean;
+  }
+}
+
 let detectorPromise: Promise<FaceDetector> | null = null;
 
 /**
