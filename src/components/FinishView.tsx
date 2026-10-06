@@ -255,7 +255,10 @@ export function FinishView({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setOverrideOcrWarning(true)}
+                      onClick={() => {
+                        setOverrideOcrWarning(true);
+                        handleSave();
+                      }}
                       className="underline font-semibold mt-1.5"
                     >
                       It is the right page — save anyway
@@ -318,6 +321,8 @@ export function FinishView({
                 ? "Checking photo…"
                 : faceBlocked
                 ? "Retake photo to save"
+                : ocrWarning
+                ? "Confirm the passage match above to save"
                 : "Save today's practice"}
             </button>
           </>
