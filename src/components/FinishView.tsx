@@ -8,6 +8,7 @@ import type { SessionRecord } from "@/lib/types";
 import { runOcrPhraseMatch, type OcrGateResult } from "@/lib/ocrGate";
 import { runFaceCheck, type FaceGateResult } from "@/lib/faceGate";
 import { extractPageFromPhoto, dataUrlToFile } from "@/lib/pageCrop";
+import { downscaleDataUrl } from "@/lib/imageResize";
 
 function fmtClock(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -74,19 +75,26 @@ export function FinishView({
     setCropStatus("idle");
     setGateStatus("cropping");
 
-    const originalDataUrl = await new Promise<string>((resolve) => {
+    const rawDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.readAsDataURL(file);
     });
-    setPhotoPreview(originalDataUrl); // immediate feedback; replaced below once cropped
+    setPhotoPreview(rawDataUrl); // immediate feedback; replaced below once processed
+
+    // Camera photos run several megapixels — running OpenCV/Tesseract/face
+    // detection directly on that blocks the main thread long enough to freeze
+    // the tab ("page isn't responding"). Downscale once, up front; this is the
+    // size everything downstream (crop input, OCR, face check, fallback) uses.
+    const originalDataUrl = await downscaleDataUrl(rawDataUrl);
 
     // Crop to just the page before anything else touches this photo. Best-effort:
     // if detection fails (bad lighting, no contrasting background, library load
-    // failure), fall back to the original photo rather than blocking the flow.
+    // failure), fall back to the (downscaled) original photo rather than
+    // blocking the flow.
     const crop = await extractPageFromPhoto(originalDataUrl);
     let activeDataUrl = originalDataUrl;
-    let activeFile = file;
+    let activeFile = await dataUrlToFile(originalDataUrl, "photo.jpg");
     if (crop.status === "cropped") {
       activeDataUrl = crop.dataUrl;
       activeFile = await dataUrlToFile(crop.dataUrl, "page-crop.jpg");
