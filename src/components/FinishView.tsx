@@ -128,26 +128,7 @@ export function FinishView({
   const ocrWarning = gateStatus === "done" && ocrResult?.status === "no_match" && !overrideOcrWarning;
   const canSave = !!photoPreview && gateStatus === "done" && !faceBlocked && !ocrWarning;
 
-  async function handleSave() {
-    const seq = todaySeqBase + 1;
-    const baseRecord: SessionRecord = {
-      date: draft.date,
-      seq,
-      topic: draft.topic,
-      passageText: draft.passageText,
-      durationSec: draft.elapsedSec,
-      wordCount: draft.wordCount,
-      wpm,
-      photo: photoPreview ? { kind: "local", src: photoPreview } : null,
-      note: note.trim().slice(0, 200),
-      legibility: null,
-      accuracy: null,
-      synced: false,
-    };
-    setRecord(baseRecord);
-    onUpsert(baseRecord);
-    setSaved(true);
-
+  async function runReview(baseRecord: SessionRecord) {
     if (!photoFile) return;
     const startedAt = Date.now();
     setReview({ status: "loading", startedAt });
@@ -172,6 +153,28 @@ export function FinishView({
     } finally {
       clearInterval(tick);
     }
+  }
+
+  async function handleSave() {
+    const seq = todaySeqBase + 1;
+    const baseRecord: SessionRecord = {
+      date: draft.date,
+      seq,
+      topic: draft.topic,
+      passageText: draft.passageText,
+      durationSec: draft.elapsedSec,
+      wordCount: draft.wordCount,
+      wpm,
+      photo: photoPreview ? { kind: "local", src: photoPreview } : null,
+      note: note.trim().slice(0, 200),
+      legibility: null,
+      accuracy: null,
+      synced: false,
+    };
+    setRecord(baseRecord);
+    onUpsert(baseRecord);
+    setSaved(true);
+    await runReview(baseRecord);
   }
 
   return (
@@ -372,6 +375,14 @@ export function FinishView({
                   <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
                     {review.message} — the session and photo are still saved.
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => record && runReview(record)}
+                    className="text-xs font-semibold underline mt-2"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    Retry review
+                  </button>
                 </>
               )}
               {review.status === "done" && record?.legibility && (

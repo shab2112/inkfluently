@@ -102,29 +102,41 @@ export async function reviewHandwritingPhoto(
     },
   };
 
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    throw new GeminiReviewError("network_error", "Could not reach the Gemini API.");
+  // Transient 5xx responses from this API happen in practice (verified: the
+  // identical request succeeded on an immediate retry) — retry a couple of
+  // times with a short backoff before surfacing an error, rather than making
+  // the user manually redo it every time Google's side has a momentary blip.
+  const maxAttempts = 3;
+  let res: Response | null = null;
+  let lastErrorText = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      throw new GeminiReviewError("network_error", "Could not reach the Gemini API.");
+    }
+    if (res.ok || res.status < 500 || attempt === maxAttempts) break;
+    lastErrorText = await res.text().catch(() => "");
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
   }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const imageRejected = res.status === 400 && /image input modality is not enabled/i.test(text);
+  const finalRes = res as Response;
+  if (!finalRes.ok) {
+    const text = finalRes.status >= 500 ? lastErrorText : await finalRes.text().catch(() => "");
+    const imageRejected = finalRes.status === 400 && /image input modality is not enabled/i.test(text);
     throw new GeminiReviewError(
-      imageRejected ? "image_input_unsupported" : res.status === 429 ? "rate_limited" : "upstream_error",
+      imageRejected ? "image_input_unsupported" : finalRes.status === 429 ? "rate_limited" : "upstream_error",
       imageRejected
         ? `The model "${model}" rejected image input — set GEMINI_MODEL to a Gemini model (e.g. gemini-2.5-flash) in .env.local instead.`
-        : `Gemini API returned ${res.status}: ${text.slice(0, 300)}`
+        : `Gemini API returned ${finalRes.status}: ${text.slice(0, 300)}`
     );
   }
 
-  const json = await res.json();
+  const json = await finalRes.json();
   // Reasoning models (e.g. Gemma 4) return multiple parts: an internal
   // chain-of-thought part marked `thought: true` first, then the real answer
   // in a later part — verified directly against the API. Skip thought parts
