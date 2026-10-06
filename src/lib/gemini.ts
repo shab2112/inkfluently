@@ -128,8 +128,9 @@ export async function reviewHandwritingPhoto(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-    } catch {
-      throw new GeminiReviewError("network_error", "Could not reach the Gemini API.");
+    } catch (e) {
+      console.error("[gemini fetch threw]", e);
+      throw new GeminiReviewError("network_error", "Could not reach the Gemini API: " + (e instanceof Error ? e.message : String(e)));
     }
     if (res.ok || res.status < 500 || attempt === maxAttempts) break;
     lastErrorText = await res.text().catch(() => "");
