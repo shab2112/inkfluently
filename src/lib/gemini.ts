@@ -19,7 +19,7 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     `You are looking at a photo of handwriting ${ageClause} produced during a home ` +
     `dictation practice session. They were read the following passage aloud, one sentence at a time, ` +
     `and asked to write down exactly what they heard:\n\n"${passageText}"\n\n` +
-    "Do two separate assessments:\n" +
+    "Do two assessments, and make sure they AGREE WITH EACH OTHER (see the note at the end — this matters):\n" +
     "1. LEGIBILITY — judge how easy the handwriting itself is to read, broken into these five named " +
     "dimensions (not content/accuracy):\n" +
     "   - letter_formation: are individual letters well-shaped (watch for reversed b/d, malformed g/y, unclosed a/o)?\n" +
@@ -34,6 +34,14 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     "passage above. List concrete differences: misspelled words, missing words/phrases, extra words, and " +
     "punctuation or capitalization mistakes. If the handwriting is too unclear to transcribe reliably in " +
     "places, say so honestly instead of guessing.\n\n" +
+    "IMPORTANT — reconcile the two: for every difference you list in ACCURACY, ask yourself why it happened. " +
+    "If you had to guess at a word because a specific letter's shape was ambiguous or resembled a different " +
+    "letter (e.g. a reading as o, s reading as r or e) — that is a LEGIBILITY problem, not a spelling gap, even " +
+    "if the writer clearly knows the correct word. In that case letter_formation must NOT be marked \"good\" — " +
+    "mark it \"needs_work\" and name the specific confusable letters in its note. Only treat a difference as " +
+    "pure accuracy (the writer genuinely wrote, spelled, or punctuated something different) when the letters " +
+    "themselves were clearly and unambiguously formed. Do not mark every legibility dimension \"good\" while " +
+    "simultaneously listing several accuracy errors that came from hard-to-read letters — that is a contradiction.\n\n" +
     "Reply with ONLY a JSON object of this exact shape:\n" +
     '{"legibility": {"score": <integer 1-5, 5=very easy to read>, "feedback": "<one short encouraging sentence>", ' +
     '"dimensions": [{"name":"letter_formation","label":"Letter formation","flag":"good"|"needs_work","note":"<string, omit or empty when good>"}, ' +
