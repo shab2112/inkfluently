@@ -431,6 +431,37 @@ export function FinishView({
                       <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
                         {record.accuracy.summary}
                       </div>
+                      {record.accuracy.errors.length > 0 && (
+                        <ul className="flex flex-col gap-1 mt-2">
+                          {record.accuracy.errors.map((e, i) => (
+                            <li
+                              key={i}
+                              className="text-[11px] rounded-lg px-2 py-1.5"
+                              style={{ background: "var(--paper-2)" }}
+                            >
+                              <span
+                                className="text-[9.5px] font-bold uppercase tracking-wide mr-1.5"
+                                style={{ color: "var(--ink-faint)" }}
+                              >
+                                {e.type}
+                              </span>
+                              {e.type === "missing" ? (
+                                <span>
+                                  missing &quot;<b>{e.expected}</b>&quot;
+                                </span>
+                              ) : e.type === "extra" ? (
+                                <span>
+                                  extra &quot;<b>{e.found}</b>&quot; (not in passage)
+                                </span>
+                              ) : (
+                                <span>
+                                  &quot;{e.found}&quot; → should be &quot;<b>{e.expected}</b>&quot;
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   )}
                   <div className="text-[11px] mt-2.5" style={{ color: "var(--ink-faint)" }}>
