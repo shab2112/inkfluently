@@ -12,6 +12,15 @@ import type { FaceDetector } from "@mediapipe/tasks-vision";
 
 let detectorPromise: Promise<FaceDetector> | null = null;
 
+/**
+ * Kicks off the MediaPipe WASM + model download early (same reasoning as
+ * src/lib/pageCrop.ts's prewarmPageCropLibs — do the one-time network/init
+ * cost while the user is still taking their photo, not at Save time).
+ */
+export function prewarmFaceDetector(): void {
+  getDetector().catch(() => {});
+}
+
 function getDetector(): Promise<FaceDetector> {
   if (!detectorPromise) {
     detectorPromise = (async () => {
@@ -38,7 +47,14 @@ export type FaceGateResult = {
 
 export async function runFaceCheck(photoDataUrl: string): Promise<FaceGateResult> {
   try {
-    const detector = await getDetector();
+    // Same reasoning as pageCrop.ts's extractPageFromPhoto: don't let a slow
+    // first-time model/WASM load (if prewarmFaceDetector() hasn't finished)
+    // hang this photo — it keeps loading in the background regardless.
+    const detector = await Promise.race([
+      getDetector(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
+    ]);
+    if (!detector) return { status: "check_failed", faceCount: 0 };
     const img = await loadImage(photoDataUrl);
     const result = detector.detect(img);
     const faceCount = result.detections.length;

@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Settings } from "@/components/InkfluentlyApp";
 import type { FinishDraft } from "@/components/PracticeView";
 import { computeWpm } from "@/lib/history";
 import type { SessionRecord } from "@/lib/types";
 import { runOcrPhraseMatch, type OcrGateResult } from "@/lib/ocrGate";
-import { runFaceCheck, type FaceGateResult } from "@/lib/faceGate";
-import { extractPageFromPhoto, dataUrlToFile } from "@/lib/pageCrop";
+import { runFaceCheck, prewarmFaceDetector, type FaceGateResult } from "@/lib/faceGate";
+import { extractPageFromPhoto, prewarmPageCropLibs, dataUrlToFile } from "@/lib/pageCrop";
 import { downscaleDataUrl } from "@/lib/imageResize";
 
 function fmtClock(totalSec: number): string {
@@ -55,6 +55,15 @@ export function FinishView({
   const [overrideOcrWarning, setOverrideOcrWarning] = useState(false);
 
   const wpm = computeWpm(draft.wordCount, draft.elapsedSec);
+
+  // Kick off the heavy one-time library loads (opencv.js ~8MB, MediaPipe's
+  // WASM+model) the moment this screen appears, not when the user hits Save —
+  // see prewarmPageCropLibs' doc comment for why this matters (a 13s+ main-
+  // thread block was reproduced and traced to this cold-load cost).
+  useEffect(() => {
+    prewarmPageCropLibs();
+    prewarmFaceDetector();
+  }, []);
 
   function retake() {
     setPhotoFile(null);
