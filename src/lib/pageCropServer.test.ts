@@ -74,4 +74,38 @@ describe("cropToPage", () => {
     const result = await cropToPage(buffer);
     expect(result.status).toBe("unavailable");
   });
+
+  // Regression test: sharp's metadata() always reports the RAW stored
+  // width/height, never the post-rotation dimensions — it does not account
+  // for the pending .rotate() call. EXIF orientations 5-8 involve a 90°/270°
+  // turn, which swaps which dimension becomes width vs height once rotation
+  // is actually applied. Using the raw values directly (the original bug)
+  // computed the crop's analysis scale and extract region against the wrong
+  // dimensions, crashing sharp's .extract() with "bad extract area" — this
+  // affects any photo taken with the phone held in landscape, not a rare
+  // edge case. Verified directly against a real photo before this test
+  // existed; reproduced here with a synthetic image so it's committable.
+  it("crops correctly when EXIF orientation requires a 90°/270° rotation (landscape-held photo)", async () => {
+    // A 800x600 "landscape" source that, once rotated 90° upright, becomes
+    // 600x800 "portrait" with the bright page region centered within it.
+    const landscapeBuffer = await makeTestImage({
+      width: 800,
+      height: 600,
+      bg: 40,
+      rect: { left: 50, top: 150, width: 500, height: 400, fill: 235 },
+    });
+    const stored = await sharp(landscapeBuffer).withMetadata({ orientation: 6 }).jpeg().toBuffer();
+    const storedMeta = await sharp(stored).metadata();
+    expect(storedMeta.width).toBe(800); // confirms the raw/stored dims are still landscape
+    expect(storedMeta.orientation).toBe(6);
+
+    const result = await cropToPage(stored);
+    expect(result.status).toBe("cropped");
+    if (result.status !== "cropped") return;
+
+    const meta = await sharp(result.buffer).metadata();
+    // Post-rotation the image is portrait (600 wide x 800 tall); the crop
+    // output must respect that, not the raw landscape dimensions.
+    expect(meta.width).toBeLessThan(meta.height!);
+  });
 });

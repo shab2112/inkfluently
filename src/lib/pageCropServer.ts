@@ -37,10 +37,41 @@ export async function cropToPage(inputBuffer: Buffer): Promise<PageCropResult> {
   try {
     const oriented = sharp(inputBuffer).rotate(); // apply EXIF orientation once, up front
     const meta = await oriented.metadata();
-    const width = meta.width;
-    const height = meta.height;
+
+    // sharp's prebuilt binaries can read an HEIC file's container/metadata
+    // (which is why this isn't caught by the dimension check below) but
+    // cannot decode its actual pixels — HEIC's HEVC compression is patent-
+    // encumbered, and sharp (and Vercel's serverless Linux build of it) will
+    // never bundle that codec. Verified directly: metadata() succeeds, but
+    // the exact same decode this function needs next throws "Support for
+    // this compression format has not been built in: HEVC". Catch this
+    // up front with an accurate message — the raw error otherwise sounds
+    // like a page-detection failure, when it's really an unsupported file
+    // format, and no amount of retaking the photo would fix it.
+    if (meta.compression === "hevc") {
+      return {
+        status: "unavailable",
+        reason:
+          "This looks like an HEIC photo (common on iPhone), which can't be processed. On iPhone, go to " +
+          "Settings → Camera → Formats and switch to \"Most Compatible\" before retaking, or send a JPEG/PNG instead.",
+      };
+    }
+
+    // sharp's metadata() always reports the RAW stored width/height — it
+    // does not account for the pending .rotate() operation above. EXIF
+    // orientations 5-8 involve a 90°/270° turn, which swaps which dimension
+    // ends up as width vs height once rotation is actually applied. Using
+    // the raw (unswapped) values here was a real bug: any photo with one of
+    // these orientations (routine for a phone held in landscape — this is
+    // not a rare edge case) produced a scale/extract region computed against
+    // the wrong dimensions, crashing the later .extract() call with "bad
+    // extract area" — verified directly against a real EXIF-orientation-6
+    // test image. Confirmed via sharp's documented behavior, not guessed.
+    const swapsDimensions = meta.orientation != null && meta.orientation >= 5 && meta.orientation <= 8;
+    const width = swapsDimensions ? meta.height : meta.width;
+    const height = swapsDimensions ? meta.width : meta.height;
     if (!width || !height) {
-      return { status: "unavailable", reason: "Could not read the photo's dimensions." };
+      return { status: "unavailable", reason: "Couldn't read this photo at all — try a different one." };
     }
 
     const scale = Math.max(width, height) / ANALYSIS_MAX_DIM;
@@ -83,18 +114,21 @@ export async function cropToPage(inputBuffer: Buffer): Promise<PageCropResult> {
     const left = colCounts.findIndex((c) => c >= colThreshold);
     const right = findLastIndex(colCounts, (c) => c >= colThreshold);
 
+    const NO_PAGE_FOUND_MESSAGE =
+      "Couldn't find the page in this photo — retake it with brighter, more even lighting and a plain background behind the page.";
+
     if (top < 0 || bottom < 0 || left < 0 || right < 0 || bottom <= top || right <= left) {
-      return { status: "unavailable", reason: "No bright page-like region detected in this photo." };
+      return { status: "unavailable", reason: NO_PAGE_FOUND_MESSAGE };
     }
 
     const boxWidth = right - left + 1;
     const boxHeight = bottom - top + 1;
     const areaRatio = (boxWidth * boxHeight) / (analysisWidth * analysisHeight);
     if (areaRatio < MIN_AREA_RATIO || areaRatio > MAX_AREA_RATIO) {
-      return {
-        status: "unavailable",
-        reason: `Detected region didn't look like a real page (area ratio ${areaRatio.toFixed(2)}).`,
-      };
+      // Area ratio is an internal diagnostic, not something a parent can act
+      // on — log it server-side, keep the user-facing message actionable.
+      console.log(`[pageCropServer] rejected: implausible area ratio ${areaRatio.toFixed(2)}`);
+      return { status: "unavailable", reason: NO_PAGE_FOUND_MESSAGE };
     }
 
     // Scale the analysis-resolution box back up to the original image.
@@ -104,7 +138,10 @@ export async function cropToPage(inputBuffer: Buffer): Promise<PageCropResult> {
     const extractHeight = Math.min(height - extractTop, Math.round(boxHeight * scale));
 
     if (extractWidth < 20 || extractHeight < 20) {
-      return { status: "unavailable", reason: "Detected crop was too small to be a real page." };
+      return {
+        status: "unavailable",
+        reason: "The detected page area was too small to use — retake it with the page filling more of the frame.",
+      };
     }
 
     const buffer = await oriented
@@ -115,7 +152,11 @@ export async function cropToPage(inputBuffer: Buffer): Promise<PageCropResult> {
 
     return { status: "cropped", buffer, mimeType: "image/jpeg" };
   } catch (err) {
-    return { status: "unavailable", reason: err instanceof Error ? err.message : "Unknown crop error." };
+    console.log("[pageCropServer] unexpected error:", err);
+    return {
+      status: "unavailable",
+      reason: "Something went wrong reading this photo — try a different one, or a different format (JPEG/PNG).",
+    };
   }
 }
 
