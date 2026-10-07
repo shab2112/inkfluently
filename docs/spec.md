@@ -118,7 +118,7 @@ Be explicit in any privacy copy that these are best-effort technical filters, no
 - **Prototype (now)**: Claude's `sample` capability — free to the developer (spends the viewer's own Claude usage), but only works inside a Claude Artifact.
 - **Rebuild (production)**: Google's Gemini/Gemma API.
   - Gemma 3 supports image input and is **free on Google AI Studio** ($0/token) — good for early development/testing.
-  - **Caveat**: free-tier content may be used to train/improve Google's models — acceptable for solo dev testing, **not acceptable once other people's children's photos are involved**. Production must use the **paid tier**, which carries data-privacy guarantees (no training on customer data) and is inexpensive at this volume.
+  - **Decided: staying on the free tier in production, including once other families use it** — free-tier content may be used to train/improve Google's models, and this applies to those families' children's handwriting photos too, not just solo dev testing. This was a deliberate cost tradeoff, not an oversight (see §10 — it must be disclosed plainly in the privacy policy/parental consent flow, not just the in-app upload disclaimer). Revisit if usage volume changes the cost calculus enough to justify the paid tier later.
 
 **If a native mobile app is built later** (see §8 — not a day-one requirement), there are two viable AI architectures, confirmed current as of Sept 2026:
 1. **Cloud API call** — the mobile app calls Gemini/Gemma the same way the web backend does. Zero new AI architecture; the mobile app is just another client. This is the default if the mobile step turns out to just be the web app wrapped in a native shell (Capacitor, React Native WebView).
@@ -143,7 +143,7 @@ Be explicit in any privacy copy that these are best-effort technical filters, no
 
 - This product handles a minor's photos and AI-generated assessments of a minor — needs a real privacy policy, data-deletion flow, and parental-consent mechanism before it's used by anyone outside the immediate family.
 - Relevant frameworks depending on audience: COPPA (US, <13), UK Age Appropriate Design Code (covers under-18s). These apply to any public web service collecting minors' data — being web-only (§8) doesn't exempt the product from them, it only removes the *additional* app-store-specific policies (e.g. Google Play Families Policy no longer applies since there's no Play Store listing).
-- Free-tier AI training-data usage (§7) is itself a privacy/compliance issue once other people's data is involved, not just a cost question — this is why production must use Gemini/Gemma's paid tier, not the free one.
+- **Free-tier AI training-data usage is a decided, accepted tradeoff (§7)**, not just a cost question — Google may use other families' children's handwriting photos to train its models. Because of this, the privacy policy and parental-consent flow (above) must explicitly disclose this specific fact (not just "an AI service processes photos" in general) so consent is actually informed.
 
 ## 11. Open questions (not yet decided)
 
