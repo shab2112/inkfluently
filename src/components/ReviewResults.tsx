@@ -2,6 +2,7 @@
 
 import type { SessionRecord } from "@/lib/types";
 import { displayReviewStatus } from "@/lib/history";
+import { WritingLoader } from "@/components/WritingLoader";
 
 /**
  * The legibility/accuracy breakdown box — shared between FinishView (right
@@ -24,8 +25,9 @@ export function ReviewResults({
     <div className="w-full text-left rounded-xl border px-3.5 py-3" style={{ background: "var(--paper)", borderColor: "var(--rule)" }}>
       {status === "pending" && (
         <>
-          <div className="text-sm font-bold">Reading the handwriting…</div>
-          <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
+          <div className="text-sm font-bold mb-2.5">Reading the handwriting…</div>
+          <WritingLoader />
+          <div className="text-xs mt-2.5" style={{ color: "var(--ink-soft)" }}>
             This can take a minute or two{reviewSeconds != null ? ` (${reviewSeconds}s)` : ""}… but you don&apos;t
             have to wait here — head back to the log now and we&apos;ll keep checking in the background. It&apos;ll
             show up there as soon as it&apos;s ready.
