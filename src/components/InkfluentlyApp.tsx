@@ -115,17 +115,45 @@ export default function InkfluentlyApp() {
         setHistory((h) => h.map((x) => (x.date === target.date && x.seq === target.seq ? { ...x, ...patch } : x)));
 
       mark({ reviewStatus: "pending", reviewError: undefined });
+      // Without this, a request that never gets a response — e.g. the dev
+      // server process restarting mid-request, or any other dropped
+      // connection that doesn't cleanly error — leaves fetch() hanging
+      // forever. reviewStatus would then be stuck on "pending" permanently,
+      // with no way to recover short of deleting the session, since the
+      // retry button only ever shows for "failed". Real Gemini calls have
+      // taken up to ~3 minutes observed in practice, so this needs to be
+      // generous, not just long enough for the common case.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
       try {
         const form = new FormData();
         form.append("photo", photoFile);
         form.append("passageText", passageText);
         if (settings.userAge) form.append("userAge", String(settings.userAge));
-        const res = await fetch("/api/review", { method: "POST", body: form });
+        const res = await fetch("/api/review", { method: "POST", body: form, signal: controller.signal });
         const json = await res.json();
         if (!res.ok) throw new Error(json?.message || `Review failed (${json?.code || res.status})`);
-        mark({ legibility: json.legibility, accuracy: json.accuracy, reviewStatus: "done" });
+        // Replace the saved photo with the cropped version the server
+        // actually analyzed — otherwise the app's own history/progress
+        // views would keep showing the original uncropped photo (whatever
+        // else was in frame) even though only the cropped copy was ever
+        // sent anywhere.
+        const photoPatch: Partial<SessionRecord> = json.croppedPhotoDataUrl
+          ? { photo: { kind: "local", src: json.croppedPhotoDataUrl } }
+          : {};
+        mark({ legibility: json.legibility, accuracy: json.accuracy, reviewStatus: "done", ...photoPatch });
       } catch (err) {
-        mark({ reviewStatus: "failed", reviewError: err instanceof Error ? err.message : "Unknown error" });
+        const timedOut = err instanceof Error && err.name === "AbortError";
+        mark({
+          reviewStatus: "failed",
+          reviewError: timedOut
+            ? "This took too long and was stopped automatically — tap to retry."
+            : err instanceof Error
+            ? err.message
+            : "Unknown error",
+        });
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
     [settings.userAge]

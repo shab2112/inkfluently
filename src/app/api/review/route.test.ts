@@ -82,5 +82,14 @@ describe("/api/review page-crop enforcement", () => {
     // The cropped image must actually be smaller than the original frame —
     // otherwise "cropping" would be a no-op that still sends the whole photo.
     expect(sentBuffer.length).toBeLessThan(buffer.length);
+
+    // The client replaces its saved/displayed photo with this — otherwise
+    // the app's own history keeps showing the original uncropped photo
+    // (background and all) even though only the cropped copy was ever
+    // analyzed or sent anywhere (the actual bug this round-trip fixes).
+    const json = await res.json();
+    expect(json.croppedPhotoDataUrl).toMatch(/^data:image\/jpeg;base64,/);
+    const savedBuffer = Buffer.from(json.croppedPhotoDataUrl.split(",")[1], "base64");
+    expect(savedBuffer.equals(sentBuffer)).toBe(true);
   });
 });

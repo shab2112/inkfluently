@@ -28,13 +28,12 @@ export async function POST(req: NextRequest) {
   // to this endpoint, bypassing the app's own UI entirely.
   const crop = await cropToPage(Buffer.from(arrayBuffer));
   if (crop.status === "unavailable") {
-    return NextResponse.json(
-      {
-        code: "page_not_detected",
-        message: `Couldn't confirm this photo is just the written page (${crop.reason}) — retake it with brighter, more even lighting and a plain background behind the page.`,
-      },
-      { status: 422 }
-    );
+    // crop.reason is already a complete, specific, actionable message (it
+    // differs meaningfully by cause — e.g. "retake with better lighting" vs.
+    // "this is an HEIC file, change your camera format" — so it's used
+    // directly rather than wrapped in one generic sentence that wouldn't fit
+    // every case.
+    return NextResponse.json({ code: "page_not_detected", message: crop.reason }, { status: 422 });
   }
   const base64 = crop.buffer.toString("base64");
 
@@ -45,7 +44,13 @@ export async function POST(req: NextRequest) {
       passageText,
       Number.isFinite(userAge) ? userAge : null
     );
-    return NextResponse.json(result);
+    // Hand the cropped image back so the client can replace the saved photo
+    // with it — otherwise the app's own history/progress views (Home log,
+    // SessionDetail, Letter progress, before/after) would keep showing the
+    // original uncropped photo (desk, monitor, whatever else was in frame)
+    // even though only the cropped version was ever analyzed or sent anywhere.
+    const croppedPhotoDataUrl = `data:${crop.mimeType};base64,${base64}`;
+    return NextResponse.json({ ...result, croppedPhotoDataUrl });
   } catch (err) {
     if (err instanceof GeminiReviewError) {
       return NextResponse.json({ code: err.code, message: err.message }, { status: 502 });
