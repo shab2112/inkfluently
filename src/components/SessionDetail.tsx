@@ -25,12 +25,12 @@ export function SessionDetail({
 }) {
   return (
     <div className="fixed inset-0 flex flex-col px-5 pt-5 pb-5 overflow-y-auto z-10" style={{ background: "var(--paper)" }}>
-      <div className="max-w-[480px] mx-auto w-full flex flex-col gap-4">
+      <div className="max-w-[480px] lg:max-w-3xl mx-auto w-full flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full border text-base"
+            className="w-9 h-9 rounded-full border text-base transition-transform hover:bg-[var(--paper-3)] active:scale-90"
             style={{ background: "var(--paper-2)", borderColor: "var(--rule)", color: "var(--ink-soft)" }}
           >
             ✕
@@ -49,21 +49,33 @@ export function SessionDetail({
           </p>
         </div>
 
-        {record.photo && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={record.photo.src} alt="" className="w-full rounded-2xl border" style={{ borderColor: "var(--rule)" }} />
-        )}
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+          <div className="lg:w-[320px] lg:flex-none flex flex-col gap-4">
+            {record.photo && (
+              <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--rule)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={record.photo.src}
+                  alt=""
+                  className="w-full transition-transform duration-300 hover:scale-105"
+                />
+              </div>
+            )}
 
-        {record.wpm != null && (
-          <div className="w-full rounded-xl p-3.5" style={{ background: "var(--paper-2)" }}>
-            <div className="font-serif-brand text-2xl font-bold">{record.wpm}</div>
-            <div className="text-xs" style={{ color: "var(--ink-soft)" }}>
-              Words per minute
-            </div>
+            {record.wpm != null && (
+              <div className="w-full rounded-xl p-3.5" style={{ background: "var(--paper-2)" }}>
+                <div className="font-serif-brand text-2xl font-bold">{record.wpm}</div>
+                <div className="text-xs" style={{ color: "var(--ink-soft)" }}>
+                  Words per minute
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-        <ReviewResults record={record} onRetry={onRetry} />
+          <div className="lg:flex-1 lg:min-w-0">
+            <ReviewResults record={record} onRetry={onRetry} />
+          </div>
+        </div>
       </div>
     </div>
   );

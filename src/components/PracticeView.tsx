@@ -115,11 +115,12 @@ export function PracticeView({
 
   return (
     <div className="fixed inset-0 flex flex-col px-5 pt-5 pb-5 overflow-y-auto" style={{ background: "var(--paper)" }}>
+      <div className="max-w-md mx-auto w-full flex flex-col flex-1 min-h-0">
       <div className="flex items-center justify-between gap-2.5">
         <button
           type="button"
           onClick={onExit}
-          className="w-9 h-9 rounded-full border text-base flex-none"
+          className="w-9 h-9 rounded-full border text-base flex-none transition-transform hover:bg-[var(--paper-3)] active:scale-90"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)", color: "var(--ink-soft)" }}
         >
           ✕
@@ -163,7 +164,7 @@ export function PracticeView({
         {phrases.map((p, i) => (
           <i
             key={i}
-            className="w-2.5 h-2.5 rounded-full block border"
+            className="w-2.5 h-2.5 rounded-full block border transition-all duration-300"
             style={{
               marginRight: i < phrases.length - 1 && phrases[i + 1].sentenceIdx !== p.sentenceIdx ? "8px" : undefined,
               background: i < idx ? "var(--good)" : i === idx ? "var(--accent)" : "var(--paper-3)",
@@ -201,7 +202,7 @@ export function PracticeView({
             key={r}
             type="button"
             onClick={() => setRate(r)}
-            className="rounded-full border px-3.5 py-1.5 text-xs font-semibold"
+            className="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-transform hover:scale-105 active:scale-95"
             style={
               rate === r
                 ? { borderColor: "var(--accent)", color: "var(--accent)", background: "var(--accent-soft)" }
@@ -217,7 +218,7 @@ export function PracticeView({
         <button
           type="button"
           onClick={handlePlay}
-          className="rounded-xl py-3.5 text-[15px] font-bold w-full"
+          className="rounded-full py-3.5 text-[15px] font-bold w-full transition-all hover:shadow-lg active:scale-[0.98]"
           style={{ background: "var(--ink)", color: "var(--paper)" }}
         >
           {idx === -1 || !phrasePlayedOnce ? "▶ Play" : "🔁 Repeat"}
@@ -239,7 +240,7 @@ export function PracticeView({
           type="button"
           disabled={isLast || idx === -1}
           onClick={handleNext}
-          className="rounded-xl py-3.5 text-[15px] font-bold w-full border disabled:opacity-45"
+          className="rounded-full py-3.5 text-[15px] font-bold w-full border disabled:opacity-45 transition-all enabled:hover:bg-[var(--paper)] enabled:active:scale-[0.98]"
           style={{ background: "var(--paper-3)", borderColor: "var(--rule)" }}
         >
           {isLast ? "That's everything" : "Next →"}
@@ -247,11 +248,12 @@ export function PracticeView({
         <button
           type="button"
           onClick={handleFinish}
-          className="rounded-xl py-3.5 text-[15px] font-bold w-full"
+          className="rounded-full py-3.5 text-[15px] font-bold w-full transition-all hover:shadow-lg active:scale-[0.98]"
           style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
         >
           ✓ Finish &amp; take a photo
         </button>
+      </div>
       </div>
     </div>
   );

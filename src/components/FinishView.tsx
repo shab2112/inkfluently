@@ -293,7 +293,7 @@ export function FinishView({
               type="button"
               disabled={!canSave}
               onClick={handleSave}
-              className="rounded-xl py-3.5 text-[15px] font-bold w-full disabled:opacity-45"
+              className="rounded-full py-3.5 text-[15px] font-bold w-full disabled:opacity-45 transition-all enabled:hover:shadow-lg enabled:active:scale-[0.98]"
               style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
             >
               {gateStatus === "checking"

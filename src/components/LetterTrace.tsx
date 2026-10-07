@@ -55,6 +55,14 @@ export function LetterTrace({ word, onClose }: { word: string; onClose: () => vo
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawingRef.current) return;
+    // Belt-and-suspenders alongside the `touch-action: none` CSS below: on a
+    // real touchscreen (unlike the synthetic pointer events this has
+    // actually been tested with — see LetterTrace's test coverage gap),
+    // some browsers still need an explicit preventDefault on each move to
+    // fully suppress native scroll/zoom gestures while mid-stroke. Safe to
+    // call here specifically — React's passive-listener restriction applies
+    // to legacy touch events (onTouchMove), not Pointer Events.
+    e.preventDefault();
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx || !lastPointRef.current) return;
     const pos = getPos(e);
@@ -88,7 +96,7 @@ export function LetterTrace({ word, onClose }: { word: string; onClose: () => vo
         <button
           type="button"
           onClick={onClose}
-          className="w-9 h-9 rounded-full border text-base"
+          className="w-9 h-9 rounded-full border text-base transition-transform hover:bg-[var(--paper-3)] active:scale-90"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)", color: "var(--ink-soft)" }}
         >
           ✕
@@ -102,7 +110,7 @@ export function LetterTrace({ word, onClose }: { word: string; onClose: () => vo
         <button
           type="button"
           onClick={clear}
-          className="rounded-full border px-3.5 py-2 text-xs font-semibold"
+          className="rounded-full border px-3.5 py-2 text-xs font-semibold transition-all hover:bg-[var(--paper-3)] active:scale-95"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
         >
           Clear
@@ -112,7 +120,7 @@ export function LetterTrace({ word, onClose }: { word: string; onClose: () => vo
       <div className="flex-1 flex items-center justify-center px-4 py-4 min-h-0">
         <div
           ref={containerRef}
-          className="relative w-full max-w-xl rounded-2xl border overflow-hidden h-full md:h-auto md:aspect-[4/3]"
+          className="relative w-full max-w-xl lg:max-w-2xl rounded-2xl border overflow-hidden h-full md:h-auto md:aspect-[4/3]"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)", touchAction: "none" }}
         >
           <div className="absolute inset-0 flex items-center justify-center px-4 pointer-events-none select-none">

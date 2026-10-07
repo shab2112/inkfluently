@@ -68,10 +68,10 @@ export function HomeView({
   const canStart = useCustom ? customText.trim().length > 0 : true;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-7 pb-16 flex flex-col gap-5">
+    <div className="max-w-2xl lg:max-w-5xl mx-auto px-4 py-7 pb-16 flex flex-col gap-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">
-          Ink<em className="not-italic" style={{ color: "var(--accent)" }}>fluently</em>
+          Ink<em style={{ color: "var(--accent)" }}>fluently</em>
         </h1>
         <span className="text-sm" style={{ color: "var(--ink-soft)" }}>
           {settings.name ? `Hi, ${settings.name}` : "Hi there"}
@@ -99,7 +99,7 @@ export function HomeView({
         <button
           type="button"
           onClick={onOpenDashboard}
-          className="rounded-full border px-3.5 py-2 text-sm font-semibold"
+          className="rounded-full border px-3.5 py-2 text-sm font-semibold transition-all hover:bg-[var(--paper-3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
         >
           📊 View trends
@@ -107,7 +107,7 @@ export function HomeView({
         <button
           type="button"
           onClick={onOpenProgress}
-          className="rounded-full border px-3.5 py-2 text-sm font-semibold"
+          className="rounded-full border px-3.5 py-2 text-sm font-semibold transition-all hover:bg-[var(--paper-3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
         >
           🖼️ Before &amp; after
@@ -115,7 +115,7 @@ export function HomeView({
         <button
           type="button"
           onClick={onOpenPatterns}
-          className="rounded-full border px-3.5 py-2 text-sm font-semibold"
+          className="rounded-full border px-3.5 py-2 text-sm font-semibold transition-all hover:bg-[var(--paper-3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
         >
           🔁 Letter progress
@@ -137,7 +137,8 @@ export function HomeView({
         </div>
       )}
 
-      <div className="rounded-2xl p-5 border" style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}>
+      <div className="flex flex-col lg:flex-row lg:items-start gap-5">
+      <div className="rounded-2xl p-5 border lg:flex-1 lg:min-w-0" style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}>
         <h2 className="text-lg font-bold mb-1">Start today&apos;s practice</h2>
         {adaptiveSkill && adaptiveSkill === adaptiveTag && (
           <div className="text-sm mb-2" style={{ color: "var(--ink-soft)" }}>
@@ -155,7 +156,7 @@ export function HomeView({
                 key={m}
                 type="button"
                 onClick={() => setSettings((s) => ({ ...s, targetMin: m }))}
-                className="flex-1 rounded-lg py-2 text-sm font-semibold"
+                className="flex-1 rounded-lg py-2 text-sm font-semibold transition-all active:scale-95"
                 style={
                   settings.targetMin === m
                     ? { background: "var(--paper)", boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }
@@ -172,7 +173,12 @@ export function HomeView({
             style={{ borderColor: "var(--rule)", color: "var(--ink-soft)" }}
           >
             <span>Topic: {currentPassage.topic}</span>
-            <button type="button" onClick={onShuffle} className="font-semibold" style={{ color: "var(--accent)" }}>
+            <button
+              type="button"
+              onClick={onShuffle}
+              className="font-semibold transition-transform hover:scale-105 active:scale-95"
+              style={{ color: "var(--accent)" }}
+            >
               🔀 Shuffle
             </button>
           </div>
@@ -222,7 +228,7 @@ export function HomeView({
                   onClick={() => voice.voiceURI && voice.previewVoice(voice.voiceURI)}
                   disabled={!voice.voiceURI}
                   aria-label="Preview the selected voice"
-                  className="rounded-lg border px-3.5 text-sm font-semibold flex-none disabled:opacity-45"
+                  className="rounded-lg border px-3.5 text-sm font-semibold flex-none disabled:opacity-45 transition-colors enabled:hover:bg-[var(--paper-3)] enabled:active:scale-95"
                   style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
                 >
                   🔊 Preview
@@ -255,7 +261,7 @@ export function HomeView({
               type="button"
               aria-label="Decrease sessions-per-day target"
               onClick={() => setSettings((s) => ({ ...s, sessionsPerDayTarget: Math.max(1, s.sessionsPerDayTarget - 1) }))}
-              className="w-8 h-8 rounded-lg border font-bold"
+              className="w-8 h-8 rounded-lg border font-bold transition-transform hover:scale-105 active:scale-90"
               style={{ borderColor: "var(--rule)", background: "var(--paper-3)" }}
             >
               −
@@ -265,7 +271,7 @@ export function HomeView({
               type="button"
               aria-label="Increase sessions-per-day target"
               onClick={() => setSettings((s) => ({ ...s, sessionsPerDayTarget: Math.min(5, s.sessionsPerDayTarget + 1) }))}
-              className="w-8 h-8 rounded-lg border font-bold"
+              className="w-8 h-8 rounded-lg border font-bold transition-transform hover:scale-105 active:scale-90"
               style={{ borderColor: "var(--rule)", background: "var(--paper-3)" }}
             >
               +
@@ -276,7 +282,7 @@ export function HomeView({
             type="button"
             disabled={!canStart}
             onClick={onStart}
-            className="rounded-xl py-3.5 text-[15px] font-bold w-full disabled:opacity-45"
+            className="rounded-full py-3.5 text-[15px] font-bold w-full disabled:opacity-45 transition-all enabled:hover:shadow-lg enabled:active:scale-[0.98]"
             style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
           >
             ▶ Start practice
@@ -284,7 +290,7 @@ export function HomeView({
         </div>
       </div>
 
-      <div className="rounded-2xl p-5 border" style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}>
+      <div className="rounded-2xl p-5 border lg:flex-1 lg:min-w-0" style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}>
         <h2 className="text-lg font-bold mb-3.5">Practice log</h2>
         <div className="grid grid-cols-[repeat(14,1fr)] gap-1.5 mb-4">
           {heatDays.map((ds) => (
@@ -317,7 +323,7 @@ export function HomeView({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") onViewSession(h);
                 }}
-                className="flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer"
+                className="flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
                 style={{ background: "var(--paper)", borderColor: "var(--rule)" }}
               >
                 {h.photo ? (
@@ -380,7 +386,7 @@ export function HomeView({
                   <button
                     type="button"
                     aria-label="Delete session"
-                    className="text-base px-1.5 py-1 rounded-md flex-none"
+                    className="text-base px-1.5 py-1 rounded-md flex-none transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--danger)]"
                     style={{ color: "var(--ink-faint)" }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -394,6 +400,7 @@ export function HomeView({
             );
           })}
         </div>
+      </div>
       </div>
 
       {storageWarning && (
@@ -428,7 +435,7 @@ function ToggleRow({ label, on, onToggle }: { label: string; on: boolean; onTogg
         role="switch"
         aria-checked={on}
         onClick={onToggle}
-        className="w-[42px] h-6 rounded-full relative flex-none border"
+        className="w-[42px] h-6 rounded-full relative flex-none border transition-colors active:scale-95"
         style={{
           background: on ? "var(--accent-soft)" : "var(--paper-3)",
           borderColor: on ? "var(--accent)" : "var(--rule)",

@@ -39,7 +39,7 @@ export function ReviewResults({
             {record.reviewError || "Something went wrong."} — the session and photo are still saved.
           </div>
           {onRetry && (
-            <button type="button" onClick={onRetry} className="text-xs font-semibold underline mt-2" style={{ color: "var(--accent)" }}>
+            <button type="button" onClick={onRetry} className="text-xs font-semibold underline mt-2 transition-opacity hover:opacity-70" style={{ color: "var(--accent)" }}>
               Retry review
             </button>
           )}

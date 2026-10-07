@@ -29,7 +29,7 @@ export function LetterProgress({ history, onClose }: { history: SessionRecord[];
   const hiddenCount = patterns.length - shown.length;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-7 pb-16 flex flex-col gap-4">
+    <div className="max-w-2xl lg:max-w-4xl mx-auto px-4 py-7 pb-16 flex flex-col gap-4">
       <Header onClose={onClose} />
       <h2 className="text-xl font-bold">Letter progress</h2>
       <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
@@ -45,15 +45,17 @@ export function LetterProgress({ history, onClose }: { history: SessionRecord[];
         </div>
       )}
 
-      {shown.map((p) => (
-        <PatternCard key={`${p.dimension}::${p.tag}`} pattern={p} history={history} onTrace={setTracingWord} />
-      ))}
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start">
+        {shown.map((p) => (
+          <PatternCard key={`${p.dimension}::${p.tag}`} pattern={p} history={history} onTrace={setTracingWord} />
+        ))}
+      </div>
 
       {patterns.length > COLLAPSED_COUNT && (
         <button
           type="button"
           onClick={() => setShowAll((v) => !v)}
-          className="text-sm font-semibold underline self-center"
+          className="text-sm font-semibold underline self-center transition-opacity hover:opacity-70"
           style={{ color: "var(--accent)" }}
         >
           {showAll ? "Show fewer" : `See all ${patterns.length} patterns (${hiddenCount} more)`}
@@ -78,7 +80,10 @@ function PatternCard({
   const record = history.find((h) => h.date === pattern.lastSeenDate && h.seq === pattern.lastSeenSeq);
 
   return (
-    <div className="rounded-2xl p-4 border flex flex-col gap-3" style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}>
+    <div
+      className="rounded-2xl p-4 border flex flex-col gap-3 transition-shadow hover:shadow-md"
+      style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--ink-soft)" }}>
@@ -102,13 +107,14 @@ function PatternCard({
             <div className="text-[9.5px] font-bold uppercase tracking-wide" style={{ color: "var(--ink-faint)" }}>
               What was written
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={record.photo.src}
-              alt=""
-              className="w-full aspect-[3/4] object-cover rounded-xl border"
-              style={{ borderColor: "var(--rule)", background: "var(--paper-3)" }}
-            />
+            <div className="w-full aspect-[3/4] rounded-xl border overflow-hidden" style={{ borderColor: "var(--rule)", background: "var(--paper-3)" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={record.photo.src}
+                alt=""
+                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+              />
+            </div>
             {pattern.lastExampleWord && (
               <div className="text-[11px]" style={{ color: "var(--ink-soft)" }}>
                 Look for: <b>&quot;{pattern.lastExampleWord}&quot;</b>
@@ -144,7 +150,7 @@ function PatternCard({
         <button
           type="button"
           onClick={() => onTrace(pattern.lastExampleWord!)}
-          className="rounded-xl border py-2.5 text-sm font-semibold"
+          className="rounded-full border py-2.5 text-sm font-semibold transition-all hover:bg-[var(--accent-soft)] active:scale-[0.98]"
           style={{ background: "var(--paper)", borderColor: "var(--rule)", color: "var(--accent)" }}
         >
           ✍️ Trace &quot;{pattern.lastExampleWord}&quot;
@@ -160,7 +166,7 @@ function Header({ onClose }: { onClose: () => void }) {
       <button
         type="button"
         onClick={onClose}
-        className="w-9 h-9 rounded-full border text-base"
+        className="w-9 h-9 rounded-full border text-base transition-transform hover:bg-[var(--paper-3)] active:scale-90"
         style={{ background: "var(--paper-2)", borderColor: "var(--rule)", color: "var(--ink-soft)" }}
       >
         ✕
