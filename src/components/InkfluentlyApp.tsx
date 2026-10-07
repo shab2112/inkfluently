@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { lsGet, lsSet, isLocalStorageAvailable } from "@/lib/storage";
 import { PASSAGES, PASSAGE_SKILL_FOR_DIM, pickPassage, passageSkillTag } from "@/lib/passages";
 import { computeStreak, computeWeeklyFocus } from "@/lib/history";
+import { dataUrlToFile } from "@/lib/imageResize";
 import { useVoice } from "@/lib/useVoice";
 import type { Passage, SessionRecord } from "@/lib/types";
 import { HomeView } from "@/components/HomeView";
@@ -11,8 +12,10 @@ import { PracticeView, type FinishDraft } from "@/components/PracticeView";
 import { FinishView } from "@/components/FinishView";
 import { DashboardView } from "@/components/DashboardView";
 import { ProgressView } from "@/components/ProgressView";
+import { LetterProgress } from "@/components/LetterProgress";
+import { SessionDetail } from "@/components/SessionDetail";
 
-type View = "home" | "practice" | "finish" | "dashboard" | "progress";
+type View = "home" | "practice" | "finish" | "dashboard" | "progress" | "patterns";
 
 export type Settings = {
   name: string;
@@ -41,6 +44,7 @@ export default function InkfluentlyApp() {
   const [customText, setCustomText] = useState("");
   const [storageWarning, setStorageWarning] = useState(false);
   const [finishDraft, setFinishDraft] = useState<FinishDraft | null>(null);
+  const [viewingSession, setViewingSession] = useState<{ date: string; seq: number } | null>(null);
   const voice = useVoice();
 
   // ---- Hydrate from localStorage on mount (client-only, avoids SSR mismatch) ----
@@ -102,6 +106,71 @@ export default function InkfluentlyApp() {
     setHistory((h) => h.filter((x) => !(x.date === date && x.seq === seq)));
   }, []);
 
+  // Owned here, not by FinishView, specifically so the review survives the
+  // user navigating away mid-review — this component never unmounts while
+  // the app is open, unlike whichever screen happened to trigger the save.
+  const triggerReview = useCallback(
+    async (target: { date: string; seq: number }, photoFile: File, passageText: string) => {
+      const mark = (patch: Partial<SessionRecord>) =>
+        setHistory((h) => h.map((x) => (x.date === target.date && x.seq === target.seq ? { ...x, ...patch } : x)));
+
+      mark({ reviewStatus: "pending", reviewError: undefined });
+      // Without this, a request that never gets a response — e.g. the dev
+      // server process restarting mid-request, or any other dropped
+      // connection that doesn't cleanly error — leaves fetch() hanging
+      // forever. reviewStatus would then be stuck on "pending" permanently,
+      // with no way to recover short of deleting the session, since the
+      // retry button only ever shows for "failed". Real Gemini calls have
+      // taken up to ~3 minutes observed in practice, so this needs to be
+      // generous, not just long enough for the common case.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+      try {
+        const form = new FormData();
+        form.append("photo", photoFile);
+        form.append("passageText", passageText);
+        if (settings.userAge) form.append("userAge", String(settings.userAge));
+        const res = await fetch("/api/review", { method: "POST", body: form, signal: controller.signal });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.message || `Review failed (${json?.code || res.status})`);
+        // Replace the saved photo with the cropped version the server
+        // actually analyzed — otherwise the app's own history/progress
+        // views would keep showing the original uncropped photo (whatever
+        // else was in frame) even though only the cropped copy was ever
+        // sent anywhere.
+        const photoPatch: Partial<SessionRecord> = json.croppedPhotoDataUrl
+          ? { photo: { kind: "local", src: json.croppedPhotoDataUrl } }
+          : {};
+        mark({ legibility: json.legibility, accuracy: json.accuracy, neatness: json.neatness ?? null, reviewStatus: "done", ...photoPatch });
+      } catch (err) {
+        const timedOut = err instanceof Error && err.name === "AbortError";
+        mark({
+          reviewStatus: "failed",
+          reviewError: timedOut
+            ? "This took too long and was stopped automatically — tap to retry."
+            : err instanceof Error
+            ? err.message
+            : "Unknown error",
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+    [settings.userAge]
+  );
+
+  // For retrying from anywhere other than the Finish screen (e.g. the Home
+  // log), the original File object is long gone — only the saved photo's
+  // data URL remains — so rebuild a File from it.
+  const retryReviewFromRecord = useCallback(
+    async (record: SessionRecord) => {
+      if (!record.photo) return;
+      const file = await dataUrlToFile(record.photo.src, "retry-photo.jpg");
+      await triggerReview({ date: record.date, seq: record.seq }, file, record.passageText);
+    },
+    [triggerReview]
+  );
+
   if (!mounted) return null;
 
   return (
@@ -112,6 +181,8 @@ export default function InkfluentlyApp() {
           setSettings={setSettings}
           history={history}
           onDeleteSession={deleteSession}
+          onRetryReview={retryReviewFromRecord}
+          onViewSession={(record) => setViewingSession({ date: record.date, seq: record.seq })}
           streak={streak}
           weeklyFocus={weeklyFocus}
           currentPassage={currentPassage}
@@ -127,6 +198,7 @@ export default function InkfluentlyApp() {
           onStart={() => setView("practice")}
           onOpenDashboard={() => setView("dashboard")}
           onOpenProgress={() => setView("progress")}
+          onOpenPatterns={() => setView("patterns")}
         />
       )}
       {view === "practice" && (
@@ -146,11 +218,12 @@ export default function InkfluentlyApp() {
       {view === "finish" && finishDraft && (
         <FinishView
           draft={finishDraft}
-          settings={settings}
+          history={history}
           todaySeqBase={history.filter((h) => h.date === finishDraft.date).length}
           onUpsert={(record) => {
             setHistory((h) => [...h.filter((x) => !(x.date === record.date && x.seq === record.seq)), record]);
           }}
+          onTriggerReview={triggerReview}
           onBackToLog={() => {
             setFinishDraft(null);
             setView("home");
@@ -159,6 +232,19 @@ export default function InkfluentlyApp() {
       )}
       {view === "dashboard" && <DashboardView history={history} onClose={() => setView("home")} />}
       {view === "progress" && <ProgressView history={history} onClose={() => setView("home")} />}
+      {view === "patterns" && <LetterProgress history={history} onClose={() => setView("home")} />}
+      {viewingSession &&
+        (() => {
+          const viewingRecord = history.find((h) => h.date === viewingSession.date && h.seq === viewingSession.seq);
+          if (!viewingRecord) return null;
+          return (
+            <SessionDetail
+              record={viewingRecord}
+              onRetry={() => retryReviewFromRecord(viewingRecord)}
+              onClose={() => setViewingSession(null)}
+            />
+          );
+        })()}
     </div>
   );
 }

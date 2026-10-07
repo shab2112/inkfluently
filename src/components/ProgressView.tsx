@@ -26,7 +26,7 @@ export function ProgressView({ history, onClose }: { history: SessionRecord[]; o
   const right = withPhotos[rightIdx];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-7 pb-16 flex flex-col gap-4">
+    <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 py-7 pb-16 flex flex-col gap-4">
       <Header onClose={onClose} />
       <h2 className="text-xl font-bold">See the difference</h2>
       <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
@@ -64,7 +64,7 @@ function Header({ onClose }: { onClose: () => void }) {
       <button
         type="button"
         onClick={onClose}
-        className="w-9 h-9 rounded-full border text-base"
+        className="w-9 h-9 rounded-full border text-base transition-transform hover:bg-[var(--paper-3)] active:scale-90"
         style={{ background: "var(--paper-2)", borderColor: "var(--rule)", color: "var(--ink-soft)" }}
       >
         ✕
@@ -98,13 +98,14 @@ function PhotoCol({
       <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--ink-faint)" }}>
         {record.date} {record.seq > 1 ? `#${record.seq}` : ""}
       </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={record.photo!.src}
-        alt=""
-        className="w-full aspect-[3/4] object-cover rounded-xl border"
-        style={{ borderColor: "var(--rule)", background: "var(--paper-3)" }}
-      />
+      <div className="w-full aspect-[3/4] rounded-xl border overflow-hidden" style={{ borderColor: "var(--rule)", background: "var(--paper-3)" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={record.photo!.src}
+          alt=""
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+        />
+      </div>
       <div className="flex gap-1.5 flex-wrap">
         {record.wpm != null && <Chip>{record.wpm} wpm</Chip>}
         {record.legibility?.score != null && <Chip>legible {record.legibility.score}/5</Chip>}
@@ -115,7 +116,7 @@ function PhotoCol({
           type="button"
           disabled={prevDisabled}
           onClick={onPrev}
-          className="rounded-lg border text-xs px-2.5 py-1 disabled:opacity-40"
+          className="rounded-lg border text-xs px-2.5 py-1 disabled:opacity-40 transition-transform enabled:hover:bg-[var(--paper-3)] enabled:active:scale-90"
           style={{ borderColor: "var(--rule)" }}
         >
           ←
@@ -124,7 +125,7 @@ function PhotoCol({
           type="button"
           disabled={nextDisabled}
           onClick={onNext}
-          className="rounded-lg border text-xs px-2.5 py-1 disabled:opacity-40"
+          className="rounded-lg border text-xs px-2.5 py-1 disabled:opacity-40 transition-transform enabled:hover:bg-[var(--paper-3)] enabled:active:scale-90"
           style={{ borderColor: "var(--rule)" }}
         >
           →

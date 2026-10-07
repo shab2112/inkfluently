@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Installed locally with --legacy-peer-deps (vitest wants @types/node
+      # ^22||>=24, this project pins ^20) — match that here so CI doesn't hit
+      # an ERESOLVE that local installs already worked around.
+      - run: npm ci --legacy-peer-deps
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

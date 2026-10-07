@@ -103,22 +103,21 @@ Reference model: **Bhanzu** (the ed-tech company referenced earlier, math learni
 
 ## 6. Safety / privacy on photo upload
 
-Two-layer design, **both must run before any photo reaches a cloud AI service**:
-
-1. **On-device OCR phrase-match gate**: run OCR locally (e.g. Tesseract.js) on the photo, check whether it contains a recognizable fragment of *this session's* dictated passage. If no match → reject upload before it ever leaves the device. (Checking for the specific dictated phrase is a much stronger, lower-false-positive signal than generic "is this handwriting" image classification.)
-2. **On-device face/person-presence gate**: separate from #1 — a photo can genuinely contain the right dictated text *and* also have a face/person in frame (e.g. reflection, someone walking by). Block upload if a face is detected, even when the OCR gate passes.
-3. **Disclaimer, shown at the upload step**: photo analysis uses a free-tier AI service that may use uploaded images to improve its models; users should only photograph their practice page, never people or personal documents. *(This part is already live in the prototype as plain copy — see below.)*
+1. **Mandatory, server-side page-crop (non-negotiable, not best-effort)**: before any photo is forwarded to the AI service, the server (`src/lib/pageCropServer.ts`, using `sharp`) detects the paper's bounding box and crops to it — background (desk, room, other objects) never reaches the AI. If a page-like region can't be confidently detected, the request is **rejected outright** (HTTP 422, surfaced to the user as a normal failed-review with a retry option) — there is no fallback that silently sends the uncropped photo. This runs in the API route itself specifically so it can't be skipped by any client, including a request sent directly to the endpoint, bypassing the app's own UI entirely. (An earlier version ran this client-side, in the browser, via opencv.js/jscanify — that was bypassable by design, since the server trusted whatever the client sent; replaced for exactly that reason.) Simpler than true contour/perspective detection (a brightness-thresholded bounding box, not a dewarped quadrilateral) — a real tradeoff against crop quality on an angled photo, accepted in exchange for being able to run anywhere this code runs, with no native-binding build pain.
+2. **On-device OCR phrase-match gate**: run OCR locally (e.g. Tesseract.js) on the (uncropped) photo, check whether it contains a recognizable fragment of *this session's* dictated passage. If no match, warn but allow an override — this is a content sanity-check, not a safety gate. (Checking for the specific dictated phrase is a much stronger, lower-false-positive signal than generic "is this handwriting" image classification.)
+3. **On-device face/person-presence gate**: separate from #2 — a photo can genuinely contain the right dictated text *and* also have a face/person in frame (e.g. reflection, someone walking by). Block upload if a face is detected, **and also block if the check itself fails to run** (e.g. a model/WASM load timeout) — a technical failure here is treated as "can't confirm it's safe," not "assume it's fine." No override, unlike #2.
+4. **Disclaimer, shown at the upload step**: photo analysis uses a free-tier AI service that may use uploaded images to improve its models; users should only photograph their practice page, never people or personal documents. *(This part is already live in the prototype as plain copy — see below.)*
 
 **Not implementable in the Claude Artifact prototype**: real on-device OCR libraries (Tesseract.js) need to fetch several MB of WASM engine + trained-language-data at runtime, which the artifact's sandbox blocks for any external host. Same story for reliable on-device face detection (inconsistent browser API support). Both are a non-issue in a normal web app — **build these in the rebuild, not the prototype.**
 
-Be explicit in any privacy copy that these are best-effort technical filters, not a guarantee — the disclaimer is the primary safeguard, the on-device gates are a backstop.
+Be explicit in any privacy copy about what's actually guaranteed vs. best-effort: the page-crop (#1) and face gate (#3) are hard, non-overridable blocks; the OCR phrase-match (#2) is a best-effort content sanity-check with a user override, not a safety boundary.
 
 ## 7. AI backend choice
 
 - **Prototype (now)**: Claude's `sample` capability — free to the developer (spends the viewer's own Claude usage), but only works inside a Claude Artifact.
 - **Rebuild (production)**: Google's Gemini/Gemma API.
   - Gemma 3 supports image input and is **free on Google AI Studio** ($0/token) — good for early development/testing.
-  - **Caveat**: free-tier content may be used to train/improve Google's models — acceptable for solo dev testing, **not acceptable once other people's children's photos are involved**. Production must use the **paid tier**, which carries data-privacy guarantees (no training on customer data) and is inexpensive at this volume.
+  - **Decided: staying on the free tier in production, including once other families use it** — free-tier content may be used to train/improve Google's models, and this applies to those families' children's handwriting photos too, not just solo dev testing. This was a deliberate cost tradeoff, not an oversight (see §10 — it must be disclosed plainly in the privacy policy/parental consent flow, not just the in-app upload disclaimer). Revisit if usage volume changes the cost calculus enough to justify the paid tier later.
 
 **If a native mobile app is built later** (see §8 — not a day-one requirement), there are two viable AI architectures, confirmed current as of Sept 2026:
 1. **Cloud API call** — the mobile app calls Gemini/Gemma the same way the web backend does. Zero new AI architecture; the mobile app is just another client. This is the default if the mobile step turns out to just be the web app wrapped in a native shell (Capacitor, React Native WebView).
@@ -143,7 +142,7 @@ Be explicit in any privacy copy that these are best-effort technical filters, no
 
 - This product handles a minor's photos and AI-generated assessments of a minor — needs a real privacy policy, data-deletion flow, and parental-consent mechanism before it's used by anyone outside the immediate family.
 - Relevant frameworks depending on audience: COPPA (US, <13), UK Age Appropriate Design Code (covers under-18s). These apply to any public web service collecting minors' data — being web-only (§8) doesn't exempt the product from them, it only removes the *additional* app-store-specific policies (e.g. Google Play Families Policy no longer applies since there's no Play Store listing).
-- Free-tier AI training-data usage (§7) is itself a privacy/compliance issue once other people's data is involved, not just a cost question — this is why production must use Gemini/Gemma's paid tier, not the free one.
+- **Free-tier AI training-data usage is a decided, accepted tradeoff (§7)**, not just a cost question — Google may use other families' children's handwriting photos to train its models. Because of this, the privacy policy and parental-consent flow (above) must explicitly disclose this specific fact (not just "an AI service processes photos" in general) so consent is actually informed.
 
 ## 11. Open questions (not yet decided)
 

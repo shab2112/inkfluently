@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
-import type { Settings } from "@/components/InkfluentlyApp";
+import { useEffect, useRef, useState } from "react";
 import type { FinishDraft } from "@/components/PracticeView";
 import { computeWpm } from "@/lib/history";
 import type { SessionRecord } from "@/lib/types";
 import { runOcrPhraseMatch, type OcrGateResult } from "@/lib/ocrGate";
-import { runFaceCheck, type FaceGateResult } from "@/lib/faceGate";
-import { extractPageFromPhoto, dataUrlToFile } from "@/lib/pageCrop";
+import { runFaceCheck, prewarmFaceDetector, type FaceGateResult } from "@/lib/faceGate";
+import { downscaleDataUrl, dataUrlToFile } from "@/lib/imageResize";
+import { ReviewResults } from "@/components/ReviewResults";
 
 function fmtClock(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -15,51 +15,68 @@ function fmtClock(totalSec: number): string {
   return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
-type ReviewState =
-  | { status: "idle" }
-  | { status: "loading"; startedAt: number }
-  | { status: "done" }
-  | { status: "error"; message: string };
-
 export function FinishView({
   draft,
-  settings,
+  history,
   todaySeqBase,
   onUpsert,
+  onTriggerReview,
   onBackToLog,
 }: {
   draft: FinishDraft;
-  settings: Settings;
+  history: SessionRecord[];
   todaySeqBase: number;
   onUpsert: (record: SessionRecord) => void;
+  onTriggerReview: (target: { date: string; seq: number }, photoFile: File, passageText: string) => Promise<void>;
   onBackToLog: () => void;
 }) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
-  const [record, setRecord] = useState<SessionRecord | null>(null);
-  const [review, setReview] = useState<ReviewState>({ status: "idle" });
+  const [savedSeq, setSavedSeq] = useState<number | null>(null);
+  const [reviewStartedAt, setReviewStartedAt] = useState<number | null>(null);
   const [reviewSeconds, setReviewSeconds] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Three-step client-side pipeline before anything leaves the device, in
-  // order: (1) crop the photo down to just the page — a data-minimization step,
-  // not a safety gate, so background/room/bystanders never leave the device at
-  // all; (2) the two-layer safety gate from docs/spec.md §6, both best-effort.
-  const [gateStatus, setGateStatus] = useState<"idle" | "cropping" | "checking" | "done">("idle");
-  const [cropStatus, setCropStatus] = useState<"idle" | "cropped" | "fallback_original">("idle");
+  // The review itself is owned by the always-mounted root component (see
+  // InkfluentlyApp's triggerReview) specifically so it survives navigating
+  // away from this screen — this just reads the live result back out of the
+  // shared history as it updates, rather than tracking its own copy.
+  const currentRecord = history.find((h) => h.date === draft.date && h.seq === savedSeq);
+
+  useEffect(() => {
+    if (currentRecord?.reviewStatus !== "pending" || reviewStartedAt == null) return;
+    const tick = setInterval(() => setReviewSeconds(Math.round((Date.now() - reviewStartedAt) / 1000)), 1000);
+    return () => clearInterval(tick);
+  }, [currentRecord?.reviewStatus, reviewStartedAt]);
+
+  // Two-layer safety gate from docs/spec.md §6, both best-effort, running
+  // client-side on the full (uncropped) downscaled photo. Cropping to just
+  // the page used to happen here too, client-side — it's now mandatory and
+  // server-side instead (see src/lib/pageCropServer.ts and the /api/review
+  // route), specifically so it can't be skipped by any client. A crop
+  // failure now surfaces as a normal review failure (reviewStatus "failed",
+  // via the existing ReviewResults retry UI) rather than a pre-save gate.
+  const [gateStatus, setGateStatus] = useState<"idle" | "checking" | "done">("idle");
   const [ocrResult, setOcrResult] = useState<OcrGateResult | null>(null);
   const [faceResult, setFaceResult] = useState<FaceGateResult | null>(null);
   const [overrideOcrWarning, setOverrideOcrWarning] = useState(false);
 
   const wpm = computeWpm(draft.wordCount, draft.elapsedSec);
 
+  // Kick off the heavy one-time library load (MediaPipe's WASM+model) the
+  // moment this screen appears, not when the user hits Save — see
+  // prewarmFaceDetector's doc comment for why this matters (a main-thread
+  // block was reproduced and traced to this cold-load cost).
+  useEffect(() => {
+    prewarmFaceDetector();
+  }, []);
+
   function retake() {
     setPhotoFile(null);
     setPhotoPreview(null);
     setGateStatus("idle");
-    setCropStatus("idle");
     setOcrResult(null);
     setFaceResult(null);
     setOverrideOcrWarning(false);
@@ -71,32 +88,22 @@ export function FinishView({
     setOverrideOcrWarning(false);
     setOcrResult(null);
     setFaceResult(null);
-    setCropStatus("idle");
-    setGateStatus("cropping");
+    setGateStatus("checking");
 
-    const originalDataUrl = await new Promise<string>((resolve) => {
+    const rawDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.readAsDataURL(file);
     });
-    setPhotoPreview(originalDataUrl); // immediate feedback; replaced below once cropped
+    setPhotoPreview(rawDataUrl); // immediate feedback; replaced below once downscaled
 
-    // Crop to just the page before anything else touches this photo. Best-effort:
-    // if detection fails (bad lighting, no contrasting background, library load
-    // failure), fall back to the original photo rather than blocking the flow.
-    const crop = await extractPageFromPhoto(originalDataUrl);
-    let activeDataUrl = originalDataUrl;
-    let activeFile = file;
-    if (crop.status === "cropped") {
-      activeDataUrl = crop.dataUrl;
-      activeFile = await dataUrlToFile(crop.dataUrl, "page-crop.jpg");
-      setCropStatus("cropped");
-    } else {
-      setCropStatus("fallback_original");
-    }
+    // Camera photos run several megapixels — running Tesseract/face detection
+    // directly on that blocks the main thread long enough to freeze the tab
+    // ("page isn't responding"). Downscale once, up front.
+    const activeDataUrl = await downscaleDataUrl(rawDataUrl);
+    const activeFile = await dataUrlToFile(activeDataUrl, "photo.jpg");
     setPhotoFile(activeFile);
     setPhotoPreview(activeDataUrl);
-    setGateStatus("checking");
 
     const [ocr, face] = await Promise.all([
       runOcrPhraseMatch(activeFile, draft.passageText),
@@ -107,11 +114,28 @@ export function FinishView({
     setGateStatus("done");
   }
 
+  // Hard, non-overridable block — no "save anyway" path, unlike the OCR
+  // content-match warning below. A photo whose "no face in frame" check
+  // couldn't be confirmed to have actually run is a safety issue, not a
+  // convenience one.
   const faceBlocked = faceResult?.status === "face_detected";
+  const faceCheckFailed = faceResult?.status === "check_failed";
   const ocrWarning = gateStatus === "done" && ocrResult?.status === "no_match" && !overrideOcrWarning;
-  const canSave = !!photoPreview && gateStatus === "done" && !faceBlocked && !ocrWarning;
+  const canSave = !!photoPreview && gateStatus === "done" && !faceBlocked && !faceCheckFailed && !ocrWarning;
+
+  function startReview(target: { date: string; seq: number }) {
+    if (!photoFile) return;
+    setReviewStartedAt(Date.now());
+    setReviewSeconds(0);
+    onTriggerReview(target, photoFile, draft.passageText);
+  }
 
   async function handleSave() {
+    // Guard here too, not just via the main button's `disabled` — the OCR
+    // "save anyway" override below calls handleSave() directly, bypassing
+    // that button entirely. The face safety gate must never be skippable
+    // through that path, only the OCR content-match warning is.
+    if (faceBlocked || faceCheckFailed) return;
     const seq = todaySeqBase + 1;
     const baseRecord: SessionRecord = {
       date: draft.date,
@@ -126,35 +150,12 @@ export function FinishView({
       legibility: null,
       accuracy: null,
       synced: false,
+      reviewStatus: "pending",
     };
-    setRecord(baseRecord);
     onUpsert(baseRecord);
+    setSavedSeq(seq);
     setSaved(true);
-
-    if (!photoFile) return;
-    const startedAt = Date.now();
-    setReview({ status: "loading", startedAt });
-    const tick = setInterval(() => setReviewSeconds(Math.round((Date.now() - startedAt) / 1000)), 1000);
-
-    try {
-      const form = new FormData();
-      form.append("photo", photoFile);
-      form.append("passageText", draft.passageText);
-      if (settings.userAge) form.append("userAge", String(settings.userAge));
-      const res = await fetch("/api/review", { method: "POST", body: form });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.message || `Review failed (${json?.code || res.status})`);
-      }
-      const updated: SessionRecord = { ...baseRecord, legibility: json.legibility, accuracy: json.accuracy };
-      setRecord(updated);
-      onUpsert(updated);
-      setReview({ status: "done" });
-    } catch (err) {
-      setReview({ status: "error", message: err instanceof Error ? err.message : "Unknown error" });
-    } finally {
-      clearInterval(tick);
-    }
+    startReview({ date: draft.date, seq });
   }
 
   return (
@@ -191,27 +192,12 @@ export function FinishView({
                     style={{ color: gateStatus === "done" ? "var(--good)" : "var(--ink-soft)" }}
                     className="font-bold"
                   >
-                    {gateStatus === "cropping"
-                      ? "Cropping to just the page…"
-                      : gateStatus === "checking"
-                      ? "Checking photo…"
-                      : "✓ Photo ready"}
+                    {gateStatus === "checking" ? "Checking photo…" : "✓ Photo ready"}
                   </span>
                   <button type="button" onClick={retake} style={{ color: "var(--ink-soft)" }} className="underline">
                     Choose a different photo
                   </button>
                 </div>
-
-                {gateStatus === "done" && cropStatus === "cropped" && (
-                  <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                    ✂️ Cropped to just the page — the background never left your device.
-                  </div>
-                )}
-                {gateStatus === "done" && cropStatus === "fallback_original" && (
-                  <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                    (Couldn&apos;t auto-detect the page edges this time — using the full photo as taken.)
-                  </div>
-                )}
 
                 {faceBlocked && (
                   <div
@@ -222,6 +208,20 @@ export function FinishView({
                     <div className="mt-1">
                       Only the written page should be in frame — please retake it without anyone (or any reflection)
                       visible.
+                    </div>
+                  </div>
+                )}
+
+                {faceCheckFailed && (
+                  <div
+                    className="rounded-lg border px-3 py-2.5 mt-2 text-xs"
+                    style={{ background: "var(--accent-soft)", borderColor: "var(--danger)", color: "var(--danger)" }}
+                  >
+                    <div className="font-bold">Couldn&apos;t verify no one is in this photo</div>
+                    <div className="mt-1">
+                      For safety, we don&apos;t send a photo for review unless this check can actually confirm no
+                      one&apos;s face is in frame — it didn&apos;t finish this time, so please try again.
+                      {faceResult?.reason ? ` (${faceResult.reason})` : ""}
                     </div>
                   </div>
                 )}
@@ -238,7 +238,10 @@ export function FinishView({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setOverrideOcrWarning(true)}
+                      onClick={() => {
+                        setOverrideOcrWarning(true);
+                        handleSave();
+                      }}
                       className="underline font-semibold mt-1.5"
                     >
                       It is the right page — save anyway
@@ -246,10 +249,11 @@ export function FinishView({
                   </div>
                 )}
 
-                {gateStatus === "done" && (ocrResult?.status === "check_failed" || faceResult?.status === "check_failed") && (
+                {gateStatus === "done" && ocrResult?.status === "check_failed" && (
                   <div className="text-[11px] mt-1.5" style={{ color: "var(--ink-faint)" }}>
-                    (The automatic photo check didn&apos;t run this time — this is a best-effort filter, not a
-                    guarantee, so saving still works normally.)
+                    (The passage-match text check didn&apos;t run this time — unlike the face check, this one&apos;s
+                    just a content sanity-check, not a safety gate, so saving still works normally.
+                    {ocrResult.reason ? ` ${ocrResult.reason}.` : ""})
                   </div>
                 )}
               </div>
@@ -267,10 +271,10 @@ export function FinishView({
               className="text-[11.5px] rounded-lg border border-dashed px-3 py-2"
               style={{ color: "var(--ink-faint)", borderColor: "var(--rule)" }}
             >
-              🔒 Only photograph the page you wrote — never people or personal documents. We automatically crop
-              photos down to just the written page before anything is sent for analysis, so backgrounds stay on
-              your device. This photo is analyzed by a third-party AI service, which may use it to help improve
-              their models.
+              🔒 Only photograph the page you wrote — never people or personal documents. Before analysis, the
+              photo is automatically cropped down to just the written page — if that can&apos;t be confirmed, it
+              won&apos;t be sent at all (you&apos;ll see a retry option instead). This photo is analyzed by a
+              third-party AI service, which may use it to help improve their models.
             </div>
 
             <div>
@@ -289,15 +293,17 @@ export function FinishView({
               type="button"
               disabled={!canSave}
               onClick={handleSave}
-              className="rounded-xl py-3.5 text-[15px] font-bold w-full disabled:opacity-45"
+              className="rounded-full py-3.5 text-[15px] font-bold w-full disabled:opacity-45 transition-all enabled:hover:shadow-lg enabled:active:scale-[0.98]"
               style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
             >
-              {gateStatus === "cropping"
-                ? "Cropping to just the page…"
-                : gateStatus === "checking"
+              {gateStatus === "checking"
                 ? "Checking photo…"
                 : faceBlocked
                 ? "Retake photo to save"
+                : faceCheckFailed
+                ? "Retry photo to save"
+                : ocrWarning
+                ? "Confirm the passage match above to save"
                 : "Save today's practice"}
             </button>
           </>
@@ -332,77 +338,13 @@ export function FinishView({
               </div>
             )}
 
-            <div className="w-full text-left rounded-xl border px-3.5 py-3" style={{ background: "var(--paper)", borderColor: "var(--rule)" }}>
-              {review.status === "loading" && (
-                <>
-                  <div className="text-sm font-bold">Reading the handwriting…</div>
-                  <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
-                    This can take up to a minute — please keep this page open ({reviewSeconds}s)…
-                  </div>
-                </>
-              )}
-              {review.status === "error" && (
-                <>
-                  <div className="text-sm font-bold">Review unavailable</div>
-                  <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
-                    {review.message} — the session and photo are still saved.
-                  </div>
-                </>
-              )}
-              {review.status === "done" && record?.legibility && (
-                <>
-                  <div className="flex items-center gap-2 text-sm font-bold">
-                    <span
-                      className="font-mono-ink rounded-full px-2.5 py-0.5 text-xs"
-                      style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
-                    >
-                      {record.legibility.score}/5
-                    </span>
-                    Legibility
-                  </div>
-                  <div className="text-xs mt-1.5" style={{ color: "var(--ink-soft)" }}>
-                    {record.legibility.feedback || "No specific notes this time."}
-                  </div>
-                  <ul className="flex flex-col gap-1 mt-2">
-                    {record.legibility.dimensions.map((d) => (
-                      <li key={d.name} className="flex items-center justify-between gap-2 text-xs">
-                        <span style={{ color: "var(--ink-soft)" }}>{d.label}</span>
-                        <span
-                          className="rounded-full px-2 py-0.5 font-bold"
-                          style={
-                            d.flag === "good"
-                              ? { background: "var(--good-soft)", color: "var(--good)" }
-                              : { background: "var(--gold-soft)", color: "var(--gold)" }
-                          }
-                        >
-                          {d.flag === "good" ? "good" : "needs work"}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {record.accuracy && (
-                    <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--rule)" }}>
-                      <div className="flex items-center gap-2 text-xs font-bold" style={{ color: "var(--ink-soft)" }}>
-                        <span
-                          className="font-mono-ink rounded-full px-2 py-0.5"
-                          style={{ background: "var(--good-soft)", color: "var(--good)" }}
-                        >
-                          {record.accuracy.score}/5
-                        </span>
-                        Accuracy (secondary)
-                      </div>
-                      <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                        {record.accuracy.summary}
-                      </div>
-                    </div>
-                  )}
-                  <div className="text-[11px] mt-2.5" style={{ color: "var(--ink-faint)" }}>
-                    Scores vary a little session to session — read the trend over time, not any single score.
-                  </div>
-                </>
-              )}
-            </div>
+            {currentRecord && (
+              <ReviewResults
+                record={currentRecord}
+                reviewSeconds={reviewSeconds}
+                onRetry={() => startReview({ date: currentRecord.date, seq: currentRecord.seq })}
+              />
+            )}
 
             <button
               type="button"

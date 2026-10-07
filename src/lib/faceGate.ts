@@ -10,7 +10,38 @@
 
 import type { FaceDetector } from "@mediapipe/tasks-vision";
 
+// MediaPipe's TFLite WASM runtime logs routine, successful init diagnostics
+// (e.g. "INFO: Created TensorFlow Lite XNNPACK delegate for CPU.") through
+// console.error instead of console.info — a known quirk of the underlying
+// C++-to-JS bridge, not an actual error. Left as-is, Next.js's dev overlay
+// treats it as a blocking "Console Error" on every single photo check. Filter
+// out only this specific, verified-benign message; everything else still
+// reaches console.error normally.
+if (typeof window !== "undefined" && !window.__faceGateConsolePatched) {
+  window.__faceGateConsolePatched = true;
+  const originalConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === "string" && args[0].includes("Created TensorFlow Lite XNNPACK delegate")) return;
+    originalConsoleError(...args);
+  };
+}
+
+declare global {
+  interface Window {
+    __faceGateConsolePatched?: boolean;
+  }
+}
+
 let detectorPromise: Promise<FaceDetector> | null = null;
+
+/**
+ * Kicks off the MediaPipe WASM + model download early — do the one-time
+ * network/init cost while the user is still taking their photo, not at
+ * Save time.
+ */
+export function prewarmFaceDetector(): void {
+  getDetector().catch(() => {});
+}
 
 function getDetector(): Promise<FaceDetector> {
   if (!detectorPromise) {
@@ -22,7 +53,7 @@ function getDetector(): Promise<FaceDetector> {
       return FaceDetector.createFromOptions(filesetResolver, {
         baseOptions: {
           modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.task",
+            "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
         },
         runningMode: "IMAGE",
       });
@@ -34,18 +65,27 @@ function getDetector(): Promise<FaceDetector> {
 export type FaceGateResult = {
   status: "clear" | "face_detected" | "check_failed";
   faceCount: number;
+  reason?: string;
 };
 
 export async function runFaceCheck(photoDataUrl: string): Promise<FaceGateResult> {
   try {
-    const detector = await getDetector();
+    // Don't let a slow first-time model/WASM load (if prewarmFaceDetector()
+    // hasn't finished) hang this photo — it keeps loading in the background
+    // regardless.
+    const detector = await Promise.race([
+      getDetector(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
+    ]);
+    if (!detector) return { status: "check_failed", faceCount: 0, reason: "Face-detection model took too long to load (20s)." };
     const img = await loadImage(photoDataUrl);
     const result = detector.detect(img);
     const faceCount = result.detections.length;
     return { status: faceCount > 0 ? "face_detected" : "clear", faceCount };
   } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
     console.error("Face-detection check failed:", err);
-    return { status: "check_failed", faceCount: 0 };
+    return { status: "check_failed", faceCount: 0, reason };
   }
 }
 

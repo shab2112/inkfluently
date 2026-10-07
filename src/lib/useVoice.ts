@@ -54,5 +54,34 @@ export function useVoice() {
     [pickVoice]
   );
 
-  return { voices, voiceURI, setVoiceURI, speak, supported: typeof window !== "undefined" && "speechSynthesis" in window };
+  // Takes the voice URI directly rather than reading it from state, so it can
+  // be called the moment a <select>'s onChange fires with the just-picked
+  // value — reading from `voiceURI` state there would still see the previous
+  // value until the next render.
+  const previewVoice = useCallback(
+    (targetVoiceURI: string, text = "This is what dictation will sound like.") => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+      const target = voices.find((v) => v.voiceURI === targetVoiceURI);
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1;
+      if (target) {
+        u.voice = target;
+        u.lang = target.lang;
+      } else {
+        u.lang = "en-US";
+      }
+      window.speechSynthesis.speak(u);
+    },
+    [voices]
+  );
+
+  return {
+    voices,
+    voiceURI,
+    setVoiceURI,
+    speak,
+    previewVoice,
+    supported: typeof window !== "undefined" && "speechSynthesis" in window,
+  };
 }
