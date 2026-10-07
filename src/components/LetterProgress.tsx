@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type { SessionRecord } from "@/lib/types";
 import { computeRecurringPatterns } from "@/lib/history";
 import type { RecurringPattern } from "@/lib/letterPatterns";
+import { LetterTrace } from "@/components/LetterTrace";
+
+const COLLAPSED_COUNT = 3;
 
 const TREND_STYLE: Record<RecurringPattern["trend"], { label: string; bg: string; fg: string }> = {
   improving: { label: "↘ improving", bg: "var(--good-soft)", fg: "var(--good)" },
@@ -18,15 +22,20 @@ const TREND_STYLE: Record<RecurringPattern["trend"], { label: string; bg: string
  * mistake keeps happening, or that it's the same one from last month.
  */
 export function LetterProgress({ history, onClose }: { history: SessionRecord[]; onClose: () => void }) {
+  const [showAll, setShowAll] = useState(false);
+  const [tracingWord, setTracingWord] = useState<string | null>(null);
   const patterns = computeRecurringPatterns(history);
+  const shown = showAll ? patterns : patterns.slice(0, COLLAPSED_COUNT);
+  const hiddenCount = patterns.length - shown.length;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-7 pb-16 flex flex-col gap-4">
       <Header onClose={onClose} />
       <h2 className="text-xl font-bold">Letter progress</h2>
       <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
-        The specific things that keep coming up across sessions — not just a score, but exactly what to practice
-        next.
+        {patterns.length > COLLAPSED_COUNT && !showAll
+          ? "Start with these — the ones showing up most often."
+          : "The specific things that keep coming up across sessions — not just a score, but exactly what to practice next."}
       </p>
 
       {patterns.length === 0 && (
@@ -36,14 +45,35 @@ export function LetterProgress({ history, onClose }: { history: SessionRecord[];
         </div>
       )}
 
-      {patterns.map((p) => (
-        <PatternCard key={`${p.dimension}::${p.tag}`} pattern={p} history={history} />
+      {shown.map((p) => (
+        <PatternCard key={`${p.dimension}::${p.tag}`} pattern={p} history={history} onTrace={setTracingWord} />
       ))}
+
+      {patterns.length > COLLAPSED_COUNT && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="text-sm font-semibold underline self-center"
+          style={{ color: "var(--accent)" }}
+        >
+          {showAll ? "Show fewer" : `See all ${patterns.length} patterns (${hiddenCount} more)`}
+        </button>
+      )}
+
+      {tracingWord && <LetterTrace word={tracingWord} onClose={() => setTracingWord(null)} />}
     </div>
   );
 }
 
-function PatternCard({ pattern, history }: { pattern: RecurringPattern; history: SessionRecord[] }) {
+function PatternCard({
+  pattern,
+  history,
+  onTrace,
+}: {
+  pattern: RecurringPattern;
+  history: SessionRecord[];
+  onTrace: (word: string) => void;
+}) {
   const trend = TREND_STYLE[pattern.trend];
   const record = history.find((h) => h.date === pattern.lastSeenDate && h.seq === pattern.lastSeenSeq);
 
@@ -108,6 +138,17 @@ function PatternCard({ pattern, history }: { pattern: RecurringPattern; history:
             </div>
           </div>
         </div>
+      )}
+
+      {pattern.lastExampleWord && (
+        <button
+          type="button"
+          onClick={() => onTrace(pattern.lastExampleWord!)}
+          className="rounded-xl border py-2.5 text-sm font-semibold"
+          style={{ background: "var(--paper)", borderColor: "var(--rule)", color: "var(--accent)" }}
+        >
+          ✍️ Trace &quot;{pattern.lastExampleWord}&quot;
+        </button>
       )}
     </div>
   );
