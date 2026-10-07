@@ -16,6 +16,11 @@ export const DIMENSION_TAGS: Record<string, { tag: string; label: string }[]> = 
     { tag: "g-y-malformed", label: "malformed g/y" },
     { tag: "unclosed-loops", label: "unclosed loops (a/o/e)" },
     { tag: "missing-dots-crosses", label: "missing dots on i's / crosses on t's" },
+    { tag: "d-cl", label: "'d' doesn't close onto its stem, reads as 'cl'" },
+    { tag: "n-m-u", label: "n/m/u humps hard to tell apart" },
+    { tag: "r-v", label: "'r' shoulder unclear, reads like 'v'" },
+    { tag: "e-l", label: "'e' loop vs 'l' loop confusion" },
+    { tag: "capitals-not-joining", label: "capitals don't join cleanly to the rest of the word" },
     { tag: "other", label: "other letter-formation issue" },
   ],
   size_consistency: [

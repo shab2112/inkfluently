@@ -141,7 +141,7 @@ export default function InkfluentlyApp() {
         const photoPatch: Partial<SessionRecord> = json.croppedPhotoDataUrl
           ? { photo: { kind: "local", src: json.croppedPhotoDataUrl } }
           : {};
-        mark({ legibility: json.legibility, accuracy: json.accuracy, reviewStatus: "done", ...photoPatch });
+        mark({ legibility: json.legibility, accuracy: json.accuracy, neatness: json.neatness ?? null, reviewStatus: "done", ...photoPatch });
       } catch (err) {
         const timedOut = err instanceof Error && err.name === "AbortError";
         mark({

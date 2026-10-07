@@ -110,3 +110,118 @@ describe("reviewHandwritingPhoto reconciliation", () => {
     expect(lf?.exampleWord).toBe("dog");
   });
 });
+
+// Prompted by real feedback: a page with real d/cl and a/o confusions still
+// scored 5/5 "good" across the board. Nothing stopped the model from giving
+// a high overall score even when it had flagged letter_formation itself as
+// a problem — these hard caps don't depend on the model doing that
+// arithmetic correctly.
+describe("reviewHandwritingPhoto hard score caps and neatness", () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.GEMINI_API_KEY;
+
+  beforeEach(() => {
+    process.env.GEMINI_API_KEY = "test-key";
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    process.env.GEMINI_API_KEY = originalKey;
+  });
+
+  it("caps the overall score at 3 when letter_formation is needs_work, even if the model scored it higher", async () => {
+    const payload = {
+      legibility: {
+        score: 5,
+        feedback: "Very neat",
+        dimensions: [
+          { name: "letter_formation", label: "Letter formation", flag: "needs_work", note: "'d' reads as 'cl'", tag: "d-cl", example_word: "durable" },
+          { name: "size_consistency", label: "Size consistency", flag: "good" },
+        ],
+      },
+      accuracy: { score: 5, errors: [], summary: "x" },
+    };
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(payload));
+
+    const result = await reviewHandwritingPhoto("base64data", "image/jpeg", "passage", null);
+
+    expect(result.legibility?.score).toBe(3);
+  });
+
+  it("caps the overall score at 4 when letter_formation is fair, even if the model scored it higher", async () => {
+    const payload = {
+      legibility: {
+        score: 5,
+        feedback: "Very neat",
+        dimensions: [
+          { name: "letter_formation", label: "Letter formation", flag: "fair", note: "a/o sometimes ambiguous", tag: "a-o", example_word: "slope" },
+        ],
+      },
+      accuracy: { score: 5, errors: [], summary: "x" },
+    };
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(payload));
+
+    const result = await reviewHandwritingPhoto("base64data", "image/jpeg", "passage", null);
+
+    expect(result.legibility?.score).toBe(4);
+  });
+
+  it("does not cap the score when letter_formation is good", async () => {
+    const payload = {
+      legibility: { score: 5, feedback: "Great", dimensions: [{ name: "letter_formation", label: "Letter formation", flag: "good" }] },
+      accuracy: { score: 5, errors: [], summary: "x" },
+    };
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(payload));
+
+    const result = await reviewHandwritingPhoto("base64data", "image/jpeg", "passage", null);
+
+    expect(result.legibility?.score).toBe(5);
+  });
+
+  it("escalates a 'fair' letter_formation to needs_work when a confusable-letter spelling error is found", async () => {
+    const payload = {
+      legibility: {
+        score: 4,
+        feedback: "Mostly clear",
+        dimensions: [{ name: "letter_formation", label: "Letter formation", flag: "fair" }],
+      },
+      accuracy: {
+        score: 3,
+        errors: [{ type: "spelling", expected: "far", found: "for" }],
+        summary: "x",
+      },
+    };
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(payload));
+
+    const result = await reviewHandwritingPhoto("base64data", "image/jpeg", "a passage with the word far", null);
+
+    const lf = result.legibility?.dimensions.find((d) => d.name === "letter_formation");
+    expect(lf?.flag).toBe("needs_work");
+    expect(result.legibility?.score).toBe(3);
+  });
+
+  it("parses a neatness note when the model includes one", async () => {
+    const payload = {
+      legibility: { score: 4, feedback: "x", dimensions: [] },
+      accuracy: { score: 4, errors: [], summary: "x" },
+      neatness: { note: "One word crossed out and rewritten" },
+    };
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(payload));
+
+    const result = await reviewHandwritingPhoto("base64data", "image/jpeg", "passage", null);
+
+    expect(result.neatness).toEqual({ note: "One word crossed out and rewritten" });
+  });
+
+  it("returns neatness as null when the model omits it", async () => {
+    const payload = {
+      legibility: { score: 4, feedback: "x", dimensions: [] },
+      accuracy: { score: 4, errors: [], summary: "x" },
+    };
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(payload));
+
+    const result = await reviewHandwritingPhoto("base64data", "image/jpeg", "passage", null);
+
+    expect(result.neatness).toBeNull();
+  });
+});

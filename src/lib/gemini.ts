@@ -1,4 +1,4 @@
-import type { AccuracyReview, LegibilityReview } from "./types";
+import type { AccuracyReview, LegibilityReview, NeatnessReview } from "./types";
 import { DIMENSION_TAGS } from "./letterPatterns";
 
 // Server-only: never import this from a "use client" component. The API key
@@ -29,11 +29,15 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     `You are looking at a photo of handwriting ${ageClause} produced during a home ` +
     `dictation practice session. They were read the following passage aloud, one sentence at a time, ` +
     `and asked to write down exactly what they heard:\n\n"${passageText}"\n\n` +
-    "Do two assessments, and make sure they AGREE WITH EACH OTHER (see the note at the end — this matters):\n" +
+    "Do three assessments, and make sure the first two AGREE WITH EACH OTHER (see the note below — this matters):\n" +
     "1. LEGIBILITY — judge how easy the handwriting itself is to read, broken into these five named " +
     "dimensions (not content/accuracy):\n" +
-    "   - letter_formation: are individual letters well-shaped (watch for reversed b/d, malformed g/y, unclosed " +
-    "a/o, and — a small but documented factor — missing dots over i's or crosses on t's)?\n" +
+    "   - letter_formation: are individual letters well-shaped? Specifically check each of these confusions and " +
+    "name the exact one you see: b/d reversal; malformed g/y; a/o/u open at the top instead of closed (a reads " +
+    "as u, o as a); missing dots over i's or crosses on t's; d not closing onto its stem, so it reads like " +
+    "\"cl\" (e.g. \"durable\" looking like \"clurable\"); n/m/u humps and cups hard to tell apart; r's shoulder " +
+    "unclear so it reads like v; e's loop vs l's loop confusable; capital letters that don't join cleanly to " +
+    "the rest of the word.\n" +
     "   - size_consistency: do letters hold a consistent height, or does size wander within a word/line?\n" +
     "   - spacing: consistent gaps between letters and words. Research on children's handwriting (Ayres, 1912, " +
     "timed-reading study of 1,578 student samples) found this to be the single biggest factor in legibility — " +
@@ -45,39 +49,61 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     "a legibility problem — only flag this if the vertical position genuinely varies within the same piece of " +
     "writing, not merely because it isn't glued to the printed rule.\n" +
     "   - slant: is the slant consistent, or does it vary erratically letter to letter?\n" +
-    '   For each dimension give a flag of exactly "good" or "needs_work", and when it\'s "needs_work" a short, ' +
-    'specific, concrete note (e.g. "height varies noticeably between words") — omit the note when "good". ' +
-    "Also give one overall 1-5 score and one short overall encouraging sentence.\n" +
-    "   When a dimension is \"needs_work\", ALSO pick exactly one `tag` from this fixed list for that specific " +
-    "dimension (reuse the SAME tag every time you see the same specific issue — this is what lets the app track " +
-    "whether a specific mistake is recurring across sessions, so don't invent new wording, pick from the list; " +
-    "use \"other\" only if truly none of the rest fit):\n" +
+    '   For each dimension give a flag of exactly "good", "fair", or "needs_work":\n' +
+    '   - "good": every letter can be read on its own, out of context.\n' +
+    '   - "fair": one or two shapes are sometimes ambiguous, but words stay readable.\n' +
+    '   - "needs_work": a letter is regularly misread as another, or a reader needs context to guess the word.\n' +
+    '   When the flag is "fair" or "needs_work", the `note` MUST quote an actual word from the page and say ' +
+    "what it looks like instead — e.g. \"'durable' reads like 'clurable' because the d doesn't close onto its " +
+    'stem" — never a vague note with no quoted example. Omit the note only when the flag is "good".\n' +
+    "   letter_formation matters most of all five dimensions — it decides whether a word can be read at all. " +
+    "Weight it heavily in the overall score, and follow these hard rules: if letter_formation is \"needs_work\", " +
+    "the overall score cannot exceed 3. If letter_formation is \"fair\", the overall score cannot exceed 4. A " +
+    "perfect 5 requires every dimension \"good\" AND no letter misread anywhere on the page — never give 5 if a " +
+    "single letter shape is regularly confused with another, even if you'd otherwise call the page very neat.\n" +
+    "   When a dimension is \"fair\" or \"needs_work\", ALSO pick exactly one `tag` from this fixed list for " +
+    "that specific dimension (reuse the SAME tag every time you see the same specific issue — this is what lets " +
+    "the app track whether a specific mistake is recurring across sessions, so don't invent new wording, pick " +
+    "from the list; use \"other\" only if truly none of the rest fit):\n" +
     tagVocabularyBlock() +
     "\n   Also give an `example_word` — the single word from the passage above where this issue is clearest in " +
     "the photo (so the app can show the user exactly where to look). Omit tag/example_word when the flag is " +
     "\"good\".\n" +
+    "   Your one-sentence overall `feedback` must match what the dimensions actually show — never call the " +
+    "handwriting \"exceptionally clear\" or similarly glowing if any dimension is \"fair\" or \"needs_work\"; " +
+    "name the real thing to work on instead.\n" +
     "2. ACCURACY — transcribe what they actually wrote as best you can, then compare it word-for-word to the " +
     "passage above. List concrete differences: misspelled words, missing words/phrases, extra words, and " +
     "punctuation or capitalization mistakes. If the handwriting is too unclear to transcribe reliably in " +
-    "places, say so honestly instead of guessing.\n\n" +
+    "places, say so honestly instead of guessing. IMPORTANT: if a word is clearly crossed out, struck through, " +
+    "or overwritten and replaced with a corrected version right next to it, judge accuracy against the writer's " +
+    "FINAL intended text only — the crossed-out attempt is not a spelling mistake or an extra word, it's a " +
+    "self-correction. Mention self-corrections under NEATNESS below instead, never as an accuracy error.\n\n" +
     "IMPORTANT — reconcile the two: for every difference you list in ACCURACY, ask yourself why it happened. " +
     "If you had to guess at a word because a specific letter's shape was ambiguous or resembled a different " +
-    "letter (e.g. a reading as o, s reading as r or e) — that is a LEGIBILITY problem, not a spelling gap, even " +
-    "if the writer clearly knows the correct word. In that case letter_formation must NOT be marked \"good\" — " +
-    "mark it \"needs_work\" and name the specific confusable letters in its note. Only treat a difference as " +
-    "pure accuracy (the writer genuinely wrote, spelled, or punctuated something different) when the letters " +
-    "themselves were clearly and unambiguously formed. Do not mark every legibility dimension \"good\" while " +
-    "simultaneously listing several accuracy errors that came from hard-to-read letters — that is a contradiction.\n\n" +
+    "letter (e.g. a reading as o, s reading as r or e, d reading as cl) — that is a LEGIBILITY problem, not a " +
+    "spelling gap, even if the writer clearly knows the correct word. In that case letter_formation must NOT be " +
+    "marked \"good\" — mark it \"fair\" or \"needs_work\" and name the specific confusable letters in its note. " +
+    "Only treat a difference as pure accuracy (the writer genuinely wrote, spelled, or punctuated something " +
+    "different) when the letters themselves were clearly and unambiguously formed. Do not mark every legibility " +
+    "dimension \"good\" while simultaneously listing several accuracy errors that came from hard-to-read " +
+    "letters — that is a contradiction.\n\n" +
+    "3. NEATNESS — separately from legibility, note crossings-out, overwriting, or self-corrections on the " +
+    "page in one short sentence (e.g. \"one word crossed out and rewritten\"). This is informational only and " +
+    "must NOT change the legibility score either way — a messy-but-legible page and a neat-but-illegible page " +
+    "are different problems. Omit entirely (leave out the neatness key) if the page has no crossings-out or " +
+    "overwriting at all.\n\n" +
     "Reply with ONLY a JSON object of this exact shape:\n" +
-    '{"legibility": {"score": <integer 1-5, 5=very easy to read>, "feedback": "<one short encouraging sentence>", ' +
-    '"dimensions": [{"name":"letter_formation","label":"Letter formation","flag":"good"|"needs_work","note":"<string, omit or empty when good>","tag":"<from the list above, omit when good>","example_word":"<word from the passage, omit when good>"}, ' +
-    '{"name":"size_consistency","label":"Size consistency","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
-    '{"name":"spacing","label":"Spacing","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
-    '{"name":"baseline","label":"Baseline","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
-    '{"name":"slant","label":"Slant","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}]}, ' +
+    '{"legibility": {"score": <integer 1-5, 5=very easy to read>, "feedback": "<one short sentence matching the dimensions below>", ' +
+    '"dimensions": [{"name":"letter_formation","label":"Letter formation","flag":"good"|"fair"|"needs_work","note":"<string quoting a real word, omit or empty when good>","tag":"<from the list above, omit when good>","example_word":"<word from the passage, omit when good>"}, ' +
+    '{"name":"size_consistency","label":"Size consistency","flag":"good"|"fair"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
+    '{"name":"spacing","label":"Spacing","flag":"good"|"fair"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
+    '{"name":"baseline","label":"Baseline","flag":"good"|"fair"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
+    '{"name":"slant","label":"Slant","flag":"good"|"fair"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}]}, ' +
     '"accuracy": {"score": <integer 1-5, 5=matches perfectly>, ' +
     '"errors": [{"type": "spelling"|"punctuation"|"missing"|"extra", "expected": "<correct text>", "found": "<what they wrote, or empty if missing>"}], ' +
-    '"summary": "<one encouraging sentence naming the main thing to work on>"}}'
+    '"summary": "<one encouraging sentence naming the main thing to work on>"}, ' +
+    '"neatness": {"note": "<one short sentence, omit this whole key if nothing to note>"}}'
   );
 }
 
@@ -133,7 +159,7 @@ export async function reviewHandwritingPhoto(
   mimeType: string,
   passageText: string,
   userAge: number | null
-): Promise<{ legibility: LegibilityReview | null; accuracy: AccuracyReview | null }> {
+): Promise<{ legibility: LegibilityReview | null; accuracy: AccuracyReview | null; neatness: NeatnessReview | null }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new GeminiReviewError(
@@ -225,8 +251,9 @@ export async function reviewHandwritingPhoto(
 
   const legRaw = (parsed.legibility ?? {}) as Record<string, unknown>;
   const accRaw = (parsed.accuracy ?? {}) as Record<string, unknown>;
+  const neatRaw = (parsed.neatness ?? {}) as Record<string, unknown>;
 
-  const legScore = clampScore(legRaw.score);
+  const legScoreRaw = clampScore(legRaw.score);
   const dims = Array.isArray(legRaw.dimensions)
     ? (legRaw.dimensions as Record<string, unknown>[])
         .filter(
@@ -234,14 +261,14 @@ export async function reviewHandwritingPhoto(
             d &&
             typeof d.name === "string" &&
             DIMENSION_NAMES.includes(d.name as (typeof DIMENSION_NAMES)[number]) &&
-            (d.flag === "good" || d.flag === "needs_work")
+            (d.flag === "good" || d.flag === "fair" || d.flag === "needs_work")
         )
         .map((d) => {
           const rawTag = typeof d.tag === "string" ? d.tag : undefined;
           return {
             name: String(d.name),
             label: String(d.label || d.name),
-            flag: d.flag as "good" | "needs_work",
+            flag: d.flag as "good" | "fair" | "needs_work",
             note: String(d.note || "").trim() || undefined,
             // Guard against the model inventing a tag outside the fixed
             // vocabulary — an off-list tag would never match anything else
@@ -251,11 +278,6 @@ export async function reviewHandwritingPhoto(
           };
         })
     : [];
-
-  const legibility: LegibilityReview | null =
-    legScore != null
-      ? { score: legScore, feedback: String(legRaw.feedback || "").trim(), dimensions: dims }
-      : null;
 
   const accScore = clampScore(accRaw.score);
   const errors = Array.isArray(accRaw.errors)
@@ -275,10 +297,12 @@ export async function reviewHandwritingPhoto(
 
   // Deterministic reconciliation: don't just trust the prompt's "reconcile
   // legibility and accuracy" instruction worked (see buildReviewPrompt) —
-  // verify it. `dims` and `errors` are the same array instances referenced by
-  // `legibility`/`accuracy` above, so mutating here updates both.
+  // verify it. `dims` is the same array instance later wrapped into
+  // `legibility.dimensions`, so mutating here updates both. Escalates on
+  // "fair" too, not just "good" — a confirmed confusable-letter swap means
+  // it's at least needs_work, regardless of what the model called it.
   const letterFormation = dims.find((d) => d.name === "letter_formation");
-  if (letterFormation && letterFormation.flag === "good") {
+  if (letterFormation && letterFormation.flag !== "needs_work") {
     for (const err of errors) {
       if (err.type !== "spelling") continue;
       const tag = confusableSwapTag(err.expected, err.found);
@@ -291,5 +315,23 @@ export async function reviewHandwritingPhoto(
     }
   }
 
-  return { legibility, accuracy };
+  // Deterministic hard cap, mirroring the same "don't just trust the prompt"
+  // lesson: letter_formation decides whether a word can be read at all, so
+  // it caps the overall score regardless of what score the model itself
+  // picked — this doesn't depend on the model doing the arithmetic right.
+  let legScore = legScoreRaw;
+  if (legScore != null && letterFormation) {
+    if (letterFormation.flag === "needs_work") legScore = Math.min(legScore, 3);
+    else if (letterFormation.flag === "fair") legScore = Math.min(legScore, 4);
+  }
+
+  const legibility: LegibilityReview | null =
+    legScore != null
+      ? { score: legScore, feedback: String(legRaw.feedback || "").trim(), dimensions: dims }
+      : null;
+
+  const neatnessNote = String(neatRaw.note || "").trim();
+  const neatness: NeatnessReview | null = neatnessNote ? { note: neatnessNote } : null;
+
+  return { legibility, accuracy, neatness };
 }

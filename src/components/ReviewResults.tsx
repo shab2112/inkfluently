@@ -26,11 +26,10 @@ export function ReviewResults({
       {status === "pending" && (
         <>
           <div className="text-sm font-bold mb-2.5">Reading the handwriting…</div>
-          <WritingLoader />
+          <WritingLoader seconds={reviewSeconds} />
           <div className="text-xs mt-2.5" style={{ color: "var(--ink-soft)" }}>
-            This can take a minute or two{reviewSeconds != null ? ` (${reviewSeconds}s)` : ""}… but you don&apos;t
-            have to wait here — head back to the log now and we&apos;ll keep checking in the background. It&apos;ll
-            show up there as soon as it&apos;s ready.
+            This can take a minute or two… but you don&apos;t have to wait here — head back to the log now and
+            we&apos;ll keep checking in the background. It&apos;ll show up there as soon as it&apos;s ready.
           </div>
         </>
       )}
@@ -59,24 +58,30 @@ export function ReviewResults({
             {record.legibility.feedback || "No specific notes this time."}
           </div>
           <ul className="flex flex-col gap-1.5 mt-2">
-            {record.legibility.dimensions.map((d) => (
-              <li key={d.name} className="text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <span style={{ color: "var(--ink-soft)" }}>{d.label}</span>
-                  <span
-                    className="rounded-full px-2 py-0.5 font-bold flex-none"
-                    style={d.flag === "good" ? { background: "var(--good-soft)", color: "var(--good)" } : { background: "var(--gold-soft)", color: "var(--gold)" }}
-                  >
-                    {d.flag === "good" ? "good" : "needs work"}
-                  </span>
-                </div>
-                {d.flag === "needs_work" && d.note && (
-                  <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
-                    {d.note}
+            {record.legibility.dimensions.map((d) => {
+              const badgeStyle =
+                d.flag === "good"
+                  ? { background: "var(--good-soft)", color: "var(--good)" }
+                  : d.flag === "fair"
+                  ? { background: "var(--gold-soft)", color: "var(--gold)" }
+                  : { background: "var(--accent-soft)", color: "var(--danger)" };
+              const badgeLabel = d.flag === "good" ? "good" : d.flag === "fair" ? "fair" : "needs work";
+              return (
+                <li key={d.name} className="text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span style={{ color: "var(--ink-soft)" }}>{d.label}</span>
+                    <span className="rounded-full px-2 py-0.5 font-bold flex-none" style={badgeStyle}>
+                      {badgeLabel}
+                    </span>
                   </div>
-                )}
-              </li>
-            ))}
+                  {d.flag !== "good" && d.note && (
+                    <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
+                      {d.note}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           {record.accuracy && (
@@ -114,6 +119,14 @@ export function ReviewResults({
                   ))}
                 </ul>
               )}
+            </div>
+          )}
+          {record.neatness?.note && (
+            <div className="mt-3 pt-3 border-t text-[11px]" style={{ borderColor: "var(--rule)", color: "var(--ink-faint)" }}>
+              <span className="font-bold uppercase tracking-wide" style={{ color: "var(--ink-soft)" }}>
+                Neatness
+              </span>{" "}
+              — {record.neatness.note} (doesn&apos;t affect the legibility score above)
             </div>
           )}
           <div className="text-[11px] mt-2.5" style={{ color: "var(--ink-faint)" }}>

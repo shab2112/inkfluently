@@ -54,8 +54,8 @@ const DIM_TIPS: Record<string, string> = {
 
 /**
  * Scans the last 7 sessions' legibility-dimension flags and surfaces whichever
- * dimension was flagged "needs_work" most often (minimum 2 occurrences, so one
- * bad photo doesn't read as a pattern).
+ * dimension was flagged "fair" or "needs_work" most often (minimum 2
+ * occurrences, so one bad photo doesn't read as a pattern).
  */
 export function computeWeeklyFocus(history: SessionRecord[]): WeeklyFocus | null {
   const recent = history
@@ -71,7 +71,7 @@ export function computeWeeklyFocus(history: SessionRecord[]): WeeklyFocus | null
   recent.forEach((h) => {
     if (!h.legibility || !Array.isArray(h.legibility.dimensions)) return;
     h.legibility.dimensions.forEach((d) => {
-      if (d.flag === "needs_work") {
+      if (d.flag !== "good") {
         counts[d.name] = (counts[d.name] || 0) + 1;
         if (!lastNote[d.name]) lastNote[d.name] = { label: d.label, note: d.note };
       }
@@ -118,7 +118,7 @@ export function computeRecurringPatterns(history: SessionRecord[], lookback = 10
 
   windowSessions.forEach((session, index) => {
     session.legibility!.dimensions.forEach((d) => {
-      if (d.flag !== "needs_work" || !d.tag) return;
+      if (d.flag === "good" || !d.tag) return;
       dimensionLabels[d.name] = d.label;
       const key = `${d.name}::${d.tag}`;
       (occurrences[key] ||= []).push({ index, date: session.date, seq: session.seq, exampleWord: d.exampleWord });
@@ -155,8 +155,18 @@ export function computeRecurringPatterns(history: SessionRecord[], lookback = 10
   return patterns;
 }
 
+// Reported handwriting speed for students is typically ~20-35 wpm; this is
+// generous well beyond even a very fast writer, specifically to catch a
+// timer bug rather than a real result — one real session showed 309 wpm,
+// physically impossible for handwriting, traced to the practice timer
+// getting reset mid-session (observed during this app's own dev-mode
+// hot-reloading, not expected in production, but the display should never
+// trust an impossible number either way).
+const MAX_PLAUSIBLE_WPM = 150;
+
 /** Whole-session WPM: passage word count ÷ duration — only meaningful past 5s. */
 export function computeWpm(wordCount: number, durationSec: number): number | null {
   if (durationSec < 5) return null;
-  return Math.round((wordCount / durationSec) * 60);
+  const wpm = Math.round((wordCount / durationSec) * 60);
+  return wpm > MAX_PLAUSIBLE_WPM ? null : wpm;
 }

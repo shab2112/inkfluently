@@ -4,7 +4,13 @@ export type Passage = {
   sentences: string[];
 };
 
-export type DimensionFlag = "good" | "needs_work";
+// Three tiers, not two — a binary good/needs_work can't distinguish "one or
+// two shapes are sometimes ambiguous but words stay readable" (fair) from
+// "a letter is regularly misread as another" (needs_work). Collapsing those
+// was exactly how a page with real d/cl and a/o confusions still scored
+// 5/5 "good" across the board (see docs/spec.md and the review-rubric
+// feedback that prompted this).
+export type DimensionFlag = "good" | "fair" | "needs_work";
 
 export type LegibilityDimension = {
   name: string;
@@ -47,6 +53,14 @@ export type PhotoRef = {
   src: string; // data URL (local) or storage URL (remote)
 };
 
+// Deliberately separate from LegibilityReview: crossings-out and overwriting
+// are worth surfacing to a parent, but must never affect the legibility
+// score itself — a messy-but-legible page and a neat-but-illegible one are
+// different problems.
+export type NeatnessReview = {
+  note: string;
+};
+
 // "pending"/"failed" let the review run independent of any screen staying
 // mounted (see src/components/InkfluentlyApp.tsx's triggerReview) — the user
 // can navigate away and back, or close the gap between sessions, and the log
@@ -65,6 +79,7 @@ export type SessionRecord = {
   note: string;
   legibility: LegibilityReview | null;
   accuracy: AccuracyReview | null;
+  neatness?: NeatnessReview | null;
   synced: boolean;
   reviewStatus?: ReviewStatus; // absent = pre-existing record from before this field existed
   reviewError?: string;
