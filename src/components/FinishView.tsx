@@ -218,7 +218,9 @@ export function FinishView({
                 )}
                 {gateStatus === "done" && cropStatus === "fallback_original" && (
                   <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                    (Couldn&apos;t auto-detect the page edges this time — using the full photo as taken.)
+                    (Couldn&apos;t auto-detect the page edges this time — using the full photo as taken, so
+                    anything else in frame wasn&apos;t cropped out. The face check below still ran either way —
+                    take a quick look to make sure nothing else private is visible before saving.)
                   </div>
                 )}
 
@@ -282,10 +284,11 @@ export function FinishView({
               className="text-[11.5px] rounded-lg border border-dashed px-3 py-2"
               style={{ color: "var(--ink-faint)", borderColor: "var(--rule)" }}
             >
-              🔒 Only photograph the page you wrote — never people or personal documents. We automatically crop
-              photos down to just the written page before anything is sent for analysis, so backgrounds stay on
-              your device. This photo is analyzed by a third-party AI service, which may use it to help improve
-              their models.
+              🔒 Only photograph the page you wrote — never people or personal documents. We try to automatically
+              crop photos down to just the written page before anything is sent for analysis, so backgrounds
+              usually stay on your device — but this is a best-effort check, not a guarantee (see the note below
+              the photo if it couldn&apos;t detect the page edges this time). This photo is analyzed by a
+              third-party AI service, which may use it to help improve their models.
             </div>
 
             <div>
