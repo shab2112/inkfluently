@@ -189,18 +189,33 @@ export function HomeView({
           {voice.voices.length > 0 && (
             <div className="flex flex-col gap-2">
               <span className="text-sm font-semibold">🗣️ Reading voice</span>
-              <select
-                value={voice.voiceURI ?? ""}
-                onChange={(e) => voice.setVoiceURI(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2.5 text-sm"
-                style={{ background: "var(--paper)", borderColor: "var(--rule)" }}
-              >
-                {voice.voices.map((v) => (
-                  <option key={v.voiceURI} value={v.voiceURI}>
-                    {v.name} ({v.lang})
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={voice.voiceURI ?? ""}
+                  onChange={(e) => {
+                    voice.setVoiceURI(e.target.value);
+                    voice.previewVoice(e.target.value);
+                  }}
+                  className="flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm"
+                  style={{ background: "var(--paper)", borderColor: "var(--rule)" }}
+                >
+                  {voice.voices.map((v) => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      {v.name} ({v.lang})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => voice.voiceURI && voice.previewVoice(voice.voiceURI)}
+                  disabled={!voice.voiceURI}
+                  aria-label="Preview the selected voice"
+                  className="rounded-lg border px-3.5 text-sm font-semibold flex-none disabled:opacity-45"
+                  style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
+                >
+                  🔊 Preview
+                </button>
+              </div>
             </div>
           )}
 
