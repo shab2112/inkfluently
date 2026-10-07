@@ -6,7 +6,7 @@ import { computeWpm } from "@/lib/history";
 import type { SessionRecord } from "@/lib/types";
 import { runOcrPhraseMatch, type OcrGateResult } from "@/lib/ocrGate";
 import { runFaceCheck, prewarmFaceDetector, type FaceGateResult } from "@/lib/faceGate";
-import { extractPageFromPhoto, prewarmPageCropLibs, dataUrlToFile } from "@/lib/pageCrop";
+import { extractPageFromPhoto, prewarmPageCropLibs, dataUrlToFile, type PageCropResult } from "@/lib/pageCrop";
 import { downscaleDataUrl } from "@/lib/imageResize";
 import { ReviewResults } from "@/components/ReviewResults";
 
@@ -58,6 +58,7 @@ export function FinishView({
   // all; (2) the two-layer safety gate from docs/spec.md §6, both best-effort.
   const [gateStatus, setGateStatus] = useState<"idle" | "cropping" | "checking" | "done">("idle");
   const [cropStatus, setCropStatus] = useState<"idle" | "cropped" | "fallback_original">("idle");
+  const [cropResult, setCropResult] = useState<PageCropResult | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrGateResult | null>(null);
   const [faceResult, setFaceResult] = useState<FaceGateResult | null>(null);
   const [overrideOcrWarning, setOverrideOcrWarning] = useState(false);
@@ -78,6 +79,7 @@ export function FinishView({
     setPhotoPreview(null);
     setGateStatus("idle");
     setCropStatus("idle");
+    setCropResult(null);
     setOcrResult(null);
     setFaceResult(null);
     setOverrideOcrWarning(false);
@@ -90,6 +92,7 @@ export function FinishView({
     setOcrResult(null);
     setFaceResult(null);
     setCropStatus("idle");
+    setCropResult(null);
     setGateStatus("cropping");
 
     const rawDataUrl = await new Promise<string>((resolve) => {
@@ -110,6 +113,7 @@ export function FinishView({
     // failure), fall back to the (downscaled) original photo rather than
     // blocking the flow.
     const crop = await extractPageFromPhoto(originalDataUrl);
+    setCropResult(crop);
     let activeDataUrl = originalDataUrl;
     let activeFile = await dataUrlToFile(originalDataUrl, "photo.jpg");
     if (crop.status === "cropped") {
@@ -132,9 +136,18 @@ export function FinishView({
     setGateStatus("done");
   }
 
+  // Both of these are hard, non-overridable blocks — no "save anyway" path,
+  // unlike the OCR content-match warning below. Sending a photo whose
+  // background couldn't be confirmed cropped out, or whose "no face in frame"
+  // check couldn't be confirmed to have actually run, is a safety issue, not
+  // a convenience one — silently falling back to "send it anyway" (the
+  // previous behavior) is exactly the bug this replaces.
+  const cropBlocked = cropStatus === "fallback_original";
   const faceBlocked = faceResult?.status === "face_detected";
+  const faceCheckFailed = faceResult?.status === "check_failed";
   const ocrWarning = gateStatus === "done" && ocrResult?.status === "no_match" && !overrideOcrWarning;
-  const canSave = !!photoPreview && gateStatus === "done" && !faceBlocked && !ocrWarning;
+  const canSave =
+    !!photoPreview && gateStatus === "done" && !cropBlocked && !faceBlocked && !faceCheckFailed && !ocrWarning;
 
   function startReview(target: { date: string; seq: number }) {
     if (!photoFile) return;
@@ -144,6 +157,11 @@ export function FinishView({
   }
 
   async function handleSave() {
+    // Guard here too, not just via the main button's `disabled` — the OCR
+    // "save anyway" override below calls handleSave() directly, bypassing
+    // that button entirely. The safety gates (crop/face) must never be
+    // skippable through that path, only the OCR content-match warning is.
+    if (cropBlocked || faceBlocked || faceCheckFailed) return;
     const seq = todaySeqBase + 1;
     const baseRecord: SessionRecord = {
       date: draft.date,
@@ -216,11 +234,19 @@ export function FinishView({
                     ✂️ Cropped to just the page — the background never left your device.
                   </div>
                 )}
-                {gateStatus === "done" && cropStatus === "fallback_original" && (
-                  <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                    (Couldn&apos;t auto-detect the page edges this time — using the full photo as taken, so
-                    anything else in frame wasn&apos;t cropped out. The face check below still ran either way —
-                    take a quick look to make sure nothing else private is visible before saving.)
+
+                {cropBlocked && (
+                  <div
+                    className="rounded-lg border px-3 py-2.5 mt-2 text-xs"
+                    style={{ background: "var(--accent-soft)", borderColor: "var(--danger)", color: "var(--danger)" }}
+                  >
+                    <div className="font-bold">Couldn&apos;t confirm this is just the written page</div>
+                    <div className="mt-1">
+                      For safety, a photo is only sent for review once we can automatically crop out everything
+                      except the page itself — this one&apos;s edges weren&apos;t detectable. Try again with
+                      brighter, more even lighting and a plain background behind the page.
+                      {cropResult?.status === "unavailable" && cropResult.reason ? ` (${cropResult.reason})` : ""}
+                    </div>
                   </div>
                 )}
 
@@ -233,6 +259,20 @@ export function FinishView({
                     <div className="mt-1">
                       Only the written page should be in frame — please retake it without anyone (or any reflection)
                       visible.
+                    </div>
+                  </div>
+                )}
+
+                {faceCheckFailed && (
+                  <div
+                    className="rounded-lg border px-3 py-2.5 mt-2 text-xs"
+                    style={{ background: "var(--accent-soft)", borderColor: "var(--danger)", color: "var(--danger)" }}
+                  >
+                    <div className="font-bold">Couldn&apos;t verify no one is in this photo</div>
+                    <div className="mt-1">
+                      For safety, we don&apos;t send a photo for review unless this check can actually confirm no
+                      one&apos;s face is in frame — it didn&apos;t finish this time, so please try again.
+                      {faceResult?.reason ? ` (${faceResult.reason})` : ""}
                     </div>
                   </div>
                 )}
@@ -260,13 +300,11 @@ export function FinishView({
                   </div>
                 )}
 
-                {gateStatus === "done" && (ocrResult?.status === "check_failed" || faceResult?.status === "check_failed") && (
+                {gateStatus === "done" && ocrResult?.status === "check_failed" && (
                   <div className="text-[11px] mt-1.5" style={{ color: "var(--ink-faint)" }}>
-                    (The automatic photo check didn&apos;t run this time — this is a best-effort filter, not a
-                    guarantee, so saving still works normally.
-                    {ocrResult?.status === "check_failed" && ocrResult.reason ? ` Text check: ${ocrResult.reason}.` : ""}
-                    {faceResult?.status === "check_failed" && faceResult.reason ? ` Face check: ${faceResult.reason}.` : ""}
-                    )
+                    (The passage-match text check didn&apos;t run this time — unlike the face check, this one&apos;s
+                    just a content sanity-check, not a safety gate, so saving still works normally.
+                    {ocrResult.reason ? ` ${ocrResult.reason}.` : ""})
                   </div>
                 )}
               </div>
@@ -314,8 +352,12 @@ export function FinishView({
                 ? "Cropping to just the page…"
                 : gateStatus === "checking"
                 ? "Checking photo…"
+                : cropBlocked
+                ? "Retake photo to save"
                 : faceBlocked
                 ? "Retake photo to save"
+                : faceCheckFailed
+                ? "Retry photo to save"
                 : ocrWarning
                 ? "Confirm the passage match above to save"
                 : "Save today's practice"}
