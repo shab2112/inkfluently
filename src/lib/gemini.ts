@@ -39,7 +39,11 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     "timed-reading study of 1,578 student samples) found this to be the single biggest factor in legibility — " +
     "bigger than letter shape itself. Watch specifically for: words crowded together with no real gap between " +
     "them, a line broken mid-word so it reads like two separate words, and inconsistent gaps between lines.\n" +
-    "   - baseline: does writing sit on the line, or drift up/down across a line?\n" +
+    "   - baseline: this is about CONSISTENCY, not touching the printed rule exactly — does the writing's " +
+    "position wander/drift up or down as a line goes on, or line to line? A child who consistently writes a " +
+    "little above or below the printed line, evenly, the same way every time, is a stable personal style, not " +
+    "a legibility problem — only flag this if the vertical position genuinely varies within the same piece of " +
+    "writing, not merely because it isn't glued to the printed rule.\n" +
     "   - slant: is the slant consistent, or does it vary erratically letter to letter?\n" +
     '   For each dimension give a flag of exactly "good" or "needs_work", and when it\'s "needs_work" a short, ' +
     'specific, concrete note (e.g. "height varies noticeably between words") — omit the note when "good". ' +
