@@ -2,65 +2,37 @@
 
 import { useEffect, useState } from "react";
 
-// A playful "work is underway" animation for the review's pending state,
-// styled after GitHub's check-run list: items resolve to a checkmark one at
-// a time, in order, staying checked — then once all are checked, pause and
-// reset. This is decorative (showing activity), not a literal progress
-// tracker — the real review is a single opaque AI call with no sub-steps to
-// actually report.
-//
-// An earlier version tried to fake this with phase-shifted CSS keyframes
-// (same animation, staggered animation-delay per row) — it looked random:
-// each row's "checked" state was a brief ~1s pulse tied to its own local
-// keyframe percentage, not held until a shared reset point, so items
-// flicked between checked and spinning independently instead of staying
-// resolved in sequence. Explicit step state fixes that directly.
-const ITEMS = ["Reading the ink", "Checking the letters", "Comparing the words"];
-const STEP_MS = 900; // time each item spends as the active spinner before resolving
-const HOLD_MS = 700; // pause with everything checked before the cascade resets
+// A playful "work is underway" animation for the review's pending state: a
+// single status line that cycles through phases (not three parallel rows —
+// this is decorative, there are no real sub-steps to report, just one opaque
+// AI call), with the elapsed time on the same line and a pulsing "live"
+// bullet marker alongside it.
+const PHRASES = ["Reading the ink", "Checking the letters", "Comparing the words"];
+const PHRASE_MS = 1800;
 
-export function WritingLoader() {
-  // 0..ITEMS.length-1 = that item is the active spinner (earlier items are
-  // already checked); ITEMS.length = all checked, holding before reset.
-  const [step, setStep] = useState(0);
+export function WritingLoader({ seconds }: { seconds?: number }) {
+  const [phraseIdx, setPhraseIdx] = useState(0);
 
   useEffect(() => {
-    const delay = step === ITEMS.length ? HOLD_MS : STEP_MS;
-    const id = setTimeout(() => setStep((s) => (s + 1) % (ITEMS.length + 1)), delay);
-    return () => clearTimeout(id);
-  }, [step]);
+    const id = setInterval(() => setPhraseIdx((i) => (i + 1) % PHRASES.length), PHRASE_MS);
+    return () => clearInterval(id);
+  }, []);
 
   return (
-    <div className="flex flex-col gap-2 w-full max-w-[220px]">
-      {ITEMS.map((label, i) => {
-        const checked = step === ITEMS.length || i < step;
-        const active = i === step;
-        return (
-          <div key={label} className="flex items-center gap-2.5">
-            <span className="relative w-4 h-4 flex-none">
-              {checked ? (
-                <svg viewBox="0 0 16 16" className="absolute inset-0">
-                  <circle cx="8" cy="8" r="7" fill="var(--good)" />
-                  <path d="M4.5 8.2 L6.8 10.6 L11.5 5.4" fill="none" stroke="var(--paper)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              ) : active ? (
-                <svg viewBox="0 0 16 16" className="absolute inset-0" style={{ animation: "wl-spin 0.8s linear infinite" }}>
-                  <circle cx="8" cy="8" r="6" fill="none" stroke="var(--gold)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="22 100" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 16 16" className="absolute inset-0">
-                  <circle cx="8" cy="8" r="6" fill="none" stroke="var(--rule)" strokeWidth="2.5" />
-                </svg>
-              )}
-            </span>
-            <span className="text-xs" style={{ color: checked || active ? "var(--ink-soft)" : "var(--ink-faint)" }}>
-              {label}
-            </span>
-          </div>
-        );
-      })}
+    <div className="flex items-center gap-2">
+      <span className="relative flex w-2.5 h-2.5 flex-none">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: "var(--accent)" }} />
+        <span className="relative inline-flex rounded-full w-2.5 h-2.5" style={{ background: "var(--accent)" }} />
+      </span>
+      <span key={phraseIdx} className="text-xs" style={{ color: "var(--ink-soft)", animation: "wl-line-in 0.3s ease" }}>
+        {PHRASES[phraseIdx]}
+        {seconds != null && <span style={{ color: "var(--ink-faint)" }}> · {seconds}s</span>}
+      </span>
       <style>{`
-        @keyframes wl-spin { to { transform: rotate(360deg); } }
+        @keyframes wl-line-in {
+          from { opacity: 0; transform: translateY(3px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
     </div>
   );
