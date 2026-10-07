@@ -112,8 +112,8 @@ export function LetterTrace({ word, onClose }: { word: string; onClose: () => vo
       <div className="flex-1 flex items-center justify-center px-4 py-4 min-h-0">
         <div
           ref={containerRef}
-          className="relative w-full max-w-xl rounded-2xl border overflow-hidden"
-          style={{ background: "var(--paper-2)", borderColor: "var(--rule)", aspectRatio: "4 / 3", touchAction: "none" }}
+          className="relative w-full max-w-xl rounded-2xl border overflow-hidden h-full md:h-auto md:aspect-[4/3]"
+          style={{ background: "var(--paper-2)", borderColor: "var(--rule)", touchAction: "none" }}
         >
           <div className="absolute inset-0 flex items-center justify-center px-4 pointer-events-none select-none">
             <span
