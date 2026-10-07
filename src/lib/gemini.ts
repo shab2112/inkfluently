@@ -83,6 +83,39 @@ function clampScore(n: unknown): number | null {
   return Math.min(5, Math.max(1, v));
 }
 
+// Sorted-letter-pair -> dimension tag, mirroring the confusable pairs named in
+// the prompt's reconciliation instruction (see buildReviewPrompt). The model
+// following that instruction is unreliable in practice (~1 in 3 real runs
+// still mark letter_formation "good" while listing one of these exact swaps
+// as a spelling error) — this is a deterministic cross-check that doesn't
+// depend on the model's self-consistency: if a single-letter spelling error
+// is exactly one of these known confusable swaps, letter_formation can't
+// honestly be "good" regardless of what the model said.
+const CONFUSABLE_PAIRS: Record<string, string> = {
+  ao: "a-o",
+  rs: "s-r",
+  es: "s-e",
+  nu: "n-u",
+};
+
+function confusableSwapTag(expected: string, found: string): string | null {
+  if (!expected || !found || expected.length !== found.length) return null;
+  const e = expected.toLowerCase();
+  const f = found.toLowerCase();
+  let diffIdx = -1;
+  let diffCount = 0;
+  for (let i = 0; i < e.length; i++) {
+    if (e[i] !== f[i]) {
+      diffCount++;
+      diffIdx = i;
+      if (diffCount > 1) return null;
+    }
+  }
+  if (diffCount !== 1) return null;
+  const pairKey = [e[diffIdx], f[diffIdx]].sort().join("");
+  return CONFUSABLE_PAIRS[pairKey] || null;
+}
+
 export class GeminiReviewError extends Error {
   code: string;
   constructor(code: string, message: string) {
@@ -235,6 +268,24 @@ export async function reviewHandwritingPhoto(
     accScore != null
       ? { score: accScore, errors, summary: String(accRaw.summary || "").trim() }
       : null;
+
+  // Deterministic reconciliation: don't just trust the prompt's "reconcile
+  // legibility and accuracy" instruction worked (see buildReviewPrompt) —
+  // verify it. `dims` and `errors` are the same array instances referenced by
+  // `legibility`/`accuracy` above, so mutating here updates both.
+  const letterFormation = dims.find((d) => d.name === "letter_formation");
+  if (letterFormation && letterFormation.flag === "good") {
+    for (const err of errors) {
+      if (err.type !== "spelling") continue;
+      const tag = confusableSwapTag(err.expected, err.found);
+      if (!tag) continue;
+      letterFormation.flag = "needs_work";
+      letterFormation.tag = tag;
+      letterFormation.note = `"${err.found}" was read where "${err.expected}" was written — that specific letter shape looks ambiguous here.`;
+      letterFormation.exampleWord = err.expected;
+      break;
+    }
+  }
 
   return { legibility, accuracy };
 }
