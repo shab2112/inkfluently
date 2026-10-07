@@ -6,8 +6,7 @@ import { computeWpm } from "@/lib/history";
 import type { SessionRecord } from "@/lib/types";
 import { runOcrPhraseMatch, type OcrGateResult } from "@/lib/ocrGate";
 import { runFaceCheck, prewarmFaceDetector, type FaceGateResult } from "@/lib/faceGate";
-import { extractPageFromPhoto, prewarmPageCropLibs, dataUrlToFile, type PageCropResult } from "@/lib/pageCrop";
-import { downscaleDataUrl } from "@/lib/imageResize";
+import { downscaleDataUrl, dataUrlToFile } from "@/lib/imageResize";
 import { ReviewResults } from "@/components/ReviewResults";
 
 function fmtClock(totalSec: number): string {
@@ -52,25 +51,25 @@ export function FinishView({
     return () => clearInterval(tick);
   }, [currentRecord?.reviewStatus, reviewStartedAt]);
 
-  // Three-step client-side pipeline before anything leaves the device, in
-  // order: (1) crop the photo down to just the page — a data-minimization step,
-  // not a safety gate, so background/room/bystanders never leave the device at
-  // all; (2) the two-layer safety gate from docs/spec.md §6, both best-effort.
-  const [gateStatus, setGateStatus] = useState<"idle" | "cropping" | "checking" | "done">("idle");
-  const [cropStatus, setCropStatus] = useState<"idle" | "cropped" | "fallback_original">("idle");
-  const [cropResult, setCropResult] = useState<PageCropResult | null>(null);
+  // Two-layer safety gate from docs/spec.md §6, both best-effort, running
+  // client-side on the full (uncropped) downscaled photo. Cropping to just
+  // the page used to happen here too, client-side — it's now mandatory and
+  // server-side instead (see src/lib/pageCropServer.ts and the /api/review
+  // route), specifically so it can't be skipped by any client. A crop
+  // failure now surfaces as a normal review failure (reviewStatus "failed",
+  // via the existing ReviewResults retry UI) rather than a pre-save gate.
+  const [gateStatus, setGateStatus] = useState<"idle" | "checking" | "done">("idle");
   const [ocrResult, setOcrResult] = useState<OcrGateResult | null>(null);
   const [faceResult, setFaceResult] = useState<FaceGateResult | null>(null);
   const [overrideOcrWarning, setOverrideOcrWarning] = useState(false);
 
   const wpm = computeWpm(draft.wordCount, draft.elapsedSec);
 
-  // Kick off the heavy one-time library loads (opencv.js ~8MB, MediaPipe's
-  // WASM+model) the moment this screen appears, not when the user hits Save —
-  // see prewarmPageCropLibs' doc comment for why this matters (a 13s+ main-
-  // thread block was reproduced and traced to this cold-load cost).
+  // Kick off the heavy one-time library load (MediaPipe's WASM+model) the
+  // moment this screen appears, not when the user hits Save — see
+  // prewarmFaceDetector's doc comment for why this matters (a main-thread
+  // block was reproduced and traced to this cold-load cost).
   useEffect(() => {
-    prewarmPageCropLibs();
     prewarmFaceDetector();
   }, []);
 
@@ -78,8 +77,6 @@ export function FinishView({
     setPhotoFile(null);
     setPhotoPreview(null);
     setGateStatus("idle");
-    setCropStatus("idle");
-    setCropResult(null);
     setOcrResult(null);
     setFaceResult(null);
     setOverrideOcrWarning(false);
@@ -91,41 +88,22 @@ export function FinishView({
     setOverrideOcrWarning(false);
     setOcrResult(null);
     setFaceResult(null);
-    setCropStatus("idle");
-    setCropResult(null);
-    setGateStatus("cropping");
+    setGateStatus("checking");
 
     const rawDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.readAsDataURL(file);
     });
-    setPhotoPreview(rawDataUrl); // immediate feedback; replaced below once processed
+    setPhotoPreview(rawDataUrl); // immediate feedback; replaced below once downscaled
 
-    // Camera photos run several megapixels — running OpenCV/Tesseract/face
-    // detection directly on that blocks the main thread long enough to freeze
-    // the tab ("page isn't responding"). Downscale once, up front; this is the
-    // size everything downstream (crop input, OCR, face check, fallback) uses.
-    const originalDataUrl = await downscaleDataUrl(rawDataUrl);
-
-    // Crop to just the page before anything else touches this photo. Best-effort:
-    // if detection fails (bad lighting, no contrasting background, library load
-    // failure), fall back to the (downscaled) original photo rather than
-    // blocking the flow.
-    const crop = await extractPageFromPhoto(originalDataUrl);
-    setCropResult(crop);
-    let activeDataUrl = originalDataUrl;
-    let activeFile = await dataUrlToFile(originalDataUrl, "photo.jpg");
-    if (crop.status === "cropped") {
-      activeDataUrl = crop.dataUrl;
-      activeFile = await dataUrlToFile(crop.dataUrl, "page-crop.jpg");
-      setCropStatus("cropped");
-    } else {
-      setCropStatus("fallback_original");
-    }
+    // Camera photos run several megapixels — running Tesseract/face detection
+    // directly on that blocks the main thread long enough to freeze the tab
+    // ("page isn't responding"). Downscale once, up front.
+    const activeDataUrl = await downscaleDataUrl(rawDataUrl);
+    const activeFile = await dataUrlToFile(activeDataUrl, "photo.jpg");
     setPhotoFile(activeFile);
     setPhotoPreview(activeDataUrl);
-    setGateStatus("checking");
 
     const [ocr, face] = await Promise.all([
       runOcrPhraseMatch(activeFile, draft.passageText),
@@ -136,18 +114,14 @@ export function FinishView({
     setGateStatus("done");
   }
 
-  // Both of these are hard, non-overridable blocks — no "save anyway" path,
-  // unlike the OCR content-match warning below. Sending a photo whose
-  // background couldn't be confirmed cropped out, or whose "no face in frame"
-  // check couldn't be confirmed to have actually run, is a safety issue, not
-  // a convenience one — silently falling back to "send it anyway" (the
-  // previous behavior) is exactly the bug this replaces.
-  const cropBlocked = cropStatus === "fallback_original";
+  // Hard, non-overridable block — no "save anyway" path, unlike the OCR
+  // content-match warning below. A photo whose "no face in frame" check
+  // couldn't be confirmed to have actually run is a safety issue, not a
+  // convenience one.
   const faceBlocked = faceResult?.status === "face_detected";
   const faceCheckFailed = faceResult?.status === "check_failed";
   const ocrWarning = gateStatus === "done" && ocrResult?.status === "no_match" && !overrideOcrWarning;
-  const canSave =
-    !!photoPreview && gateStatus === "done" && !cropBlocked && !faceBlocked && !faceCheckFailed && !ocrWarning;
+  const canSave = !!photoPreview && gateStatus === "done" && !faceBlocked && !faceCheckFailed && !ocrWarning;
 
   function startReview(target: { date: string; seq: number }) {
     if (!photoFile) return;
@@ -159,9 +133,9 @@ export function FinishView({
   async function handleSave() {
     // Guard here too, not just via the main button's `disabled` — the OCR
     // "save anyway" override below calls handleSave() directly, bypassing
-    // that button entirely. The safety gates (crop/face) must never be
-    // skippable through that path, only the OCR content-match warning is.
-    if (cropBlocked || faceBlocked || faceCheckFailed) return;
+    // that button entirely. The face safety gate must never be skippable
+    // through that path, only the OCR content-match warning is.
+    if (faceBlocked || faceCheckFailed) return;
     const seq = todaySeqBase + 1;
     const baseRecord: SessionRecord = {
       date: draft.date,
@@ -218,37 +192,12 @@ export function FinishView({
                     style={{ color: gateStatus === "done" ? "var(--good)" : "var(--ink-soft)" }}
                     className="font-bold"
                   >
-                    {gateStatus === "cropping"
-                      ? "Cropping to just the page…"
-                      : gateStatus === "checking"
-                      ? "Checking photo…"
-                      : "✓ Photo ready"}
+                    {gateStatus === "checking" ? "Checking photo…" : "✓ Photo ready"}
                   </span>
                   <button type="button" onClick={retake} style={{ color: "var(--ink-soft)" }} className="underline">
                     Choose a different photo
                   </button>
                 </div>
-
-                {gateStatus === "done" && cropStatus === "cropped" && (
-                  <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                    ✂️ Cropped to just the page — the background never left your device.
-                  </div>
-                )}
-
-                {cropBlocked && (
-                  <div
-                    className="rounded-lg border px-3 py-2.5 mt-2 text-xs"
-                    style={{ background: "var(--accent-soft)", borderColor: "var(--danger)", color: "var(--danger)" }}
-                  >
-                    <div className="font-bold">Couldn&apos;t confirm this is just the written page</div>
-                    <div className="mt-1">
-                      For safety, a photo is only sent for review once we can automatically crop out everything
-                      except the page itself — this one&apos;s edges weren&apos;t detectable. Try again with
-                      brighter, more even lighting and a plain background behind the page.
-                      {cropResult?.status === "unavailable" && cropResult.reason ? ` (${cropResult.reason})` : ""}
-                    </div>
-                  </div>
-                )}
 
                 {faceBlocked && (
                   <div
@@ -322,10 +271,9 @@ export function FinishView({
               className="text-[11.5px] rounded-lg border border-dashed px-3 py-2"
               style={{ color: "var(--ink-faint)", borderColor: "var(--rule)" }}
             >
-              🔒 Only photograph the page you wrote — never people or personal documents. We try to automatically
-              crop photos down to just the written page before anything is sent for analysis, so backgrounds
-              usually stay on your device — but this is a best-effort check, not a guarantee (see the note below
-              the photo if it couldn&apos;t detect the page edges this time). This photo is analyzed by a
+              🔒 Only photograph the page you wrote — never people or personal documents. Before analysis, the
+              photo is automatically cropped down to just the written page — if that can&apos;t be confirmed, it
+              won&apos;t be sent at all (you&apos;ll see a retry option instead). This photo is analyzed by a
               third-party AI service, which may use it to help improve their models.
             </div>
 
@@ -348,12 +296,8 @@ export function FinishView({
               className="rounded-xl py-3.5 text-[15px] font-bold w-full disabled:opacity-45"
               style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
             >
-              {gateStatus === "cropping"
-                ? "Cropping to just the page…"
-                : gateStatus === "checking"
+              {gateStatus === "checking"
                 ? "Checking photo…"
-                : cropBlocked
-                ? "Retake photo to save"
                 : faceBlocked
                 ? "Retake photo to save"
                 : faceCheckFailed

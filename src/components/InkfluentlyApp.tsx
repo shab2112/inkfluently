@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { lsGet, lsSet, isLocalStorageAvailable } from "@/lib/storage";
 import { PASSAGES, PASSAGE_SKILL_FOR_DIM, pickPassage, passageSkillTag } from "@/lib/passages";
 import { computeStreak, computeWeeklyFocus } from "@/lib/history";
-import { dataUrlToFile } from "@/lib/pageCrop";
+import { dataUrlToFile } from "@/lib/imageResize";
 import { useVoice } from "@/lib/useVoice";
 import type { Passage, SessionRecord } from "@/lib/types";
 import { HomeView } from "@/components/HomeView";

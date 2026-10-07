@@ -6,22 +6,14 @@ import userEvent from "@testing-library/user-event";
 import { FinishView } from "./FinishView";
 import type { FinishDraft } from "./PracticeView";
 import type { SessionRecord } from "@/lib/types";
-import { extractPageFromPhoto } from "@/lib/pageCrop";
 import { runFaceCheck } from "@/lib/faceGate";
 
-// These three touch real browser-only CV libraries (CDN WASM loads, canvas,
-// tesseract workers) that don't run in jsdom and are already covered by
-// separate, dedicated testing (see docs/spec.md §6 work). Mocked here so this
-// test isolates exactly what it's verifying: the Save/Retry button wiring.
-// Cropped by default — these tests are about Save/Retry wiring, not the crop
-// gate itself (see the dedicated "fail-closed" tests below for that), and
-// crop failure now hard-blocks saving, so leaving this "unavailable" would
-// make every other test below unable to ever reach a successful save.
-vi.mock("@/lib/pageCrop", () => ({
-  extractPageFromPhoto: vi.fn(async () => ({ status: "cropped", dataUrl: "data:image/jpeg;base64,mocked" })),
-  prewarmPageCropLibs: vi.fn(),
-  dataUrlToFile: vi.fn(async (dataUrl: string, filename: string) => new File([dataUrl], filename, { type: "image/jpeg" })),
-}));
+// These touch real browser-only CV/OCR libraries (CDN WASM loads, tesseract
+// workers) that don't run in jsdom and are already covered by separate,
+// dedicated testing (see docs/spec.md §6 work; page-crop itself is now
+// server-side, tested in src/lib/pageCropServer.test.ts). Mocked here so
+// this test isolates exactly what it's verifying: the Save/Retry button
+// wiring.
 vi.mock("@/lib/faceGate", () => ({
   runFaceCheck: vi.fn(async () => ({ status: "clear", faceCount: 0 })),
   prewarmFaceDetector: vi.fn(),
@@ -38,6 +30,7 @@ vi.mock("@/lib/imageResize", () => ({
   // jsdom doesn't implement real canvas/image decoding — not what this test
   // is verifying, so pass the input straight through.
   downscaleDataUrl: vi.fn(async (dataUrl: string) => dataUrl),
+  dataUrlToFile: vi.fn(async (dataUrl: string, filename: string) => new File([dataUrl], filename, { type: "image/jpeg" })),
 }));
 
 const draft: FinishDraft = {
@@ -192,27 +185,11 @@ describe("FinishView", () => {
   });
 
   // "Non-negotiable" per explicit product direction: unlike the OCR content-
-  // match warning, there is no override for these — if we can't confirm the
-  // background was cropped out, or can't confirm the face check actually ran,
-  // saving (and therefore sending the photo anywhere) must be impossible, not
-  // just discouraged.
-  it("blocks saving when the page crop can't confirm the background was removed, with no override", async () => {
-    vi.mocked(extractPageFromPhoto).mockResolvedValueOnce({ status: "unavailable", reason: "no edges detected" });
-    const reviewImpl = vi.fn(async () => ({ legibility: null, accuracy: null }));
-
-    render(<TestHarness reviewImpl={reviewImpl} />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLElement;
-    await selectFile(fileInput);
-
-    await screen.findByText("Couldn't confirm this is just the written page", { exact: false });
-    const saveButton = screen.getByRole("button", { name: /retake photo to save/i });
-    expect(saveButton).toBeDisabled();
-
-    await new Promise((r) => setTimeout(r, 10));
-    expect(reviewImpl).not.toHaveBeenCalled();
-  });
-
+  // match warning, there is no override for this — if we can't confirm the
+  // face check actually ran, saving (and therefore sending the photo
+  // anywhere) must be impossible, not just discouraged. (The equivalent
+  // crop-confirmation gate now lives server-side — see
+  // src/lib/pageCropServer.test.ts and the /api/review route tests.)
   it("blocks saving when the face check fails to run, with no override", async () => {
     vi.mocked(runFaceCheck).mockResolvedValueOnce({ status: "check_failed", faceCount: 0, reason: "model timed out" });
     const reviewImpl = vi.fn(async () => ({ legibility: null, accuracy: null }));
@@ -230,8 +207,8 @@ describe("FinishView", () => {
     expect(reviewImpl).not.toHaveBeenCalled();
   });
 
-  it("the OCR 'save anyway' override cannot bypass a simultaneous crop block", async () => {
-    vi.mocked(extractPageFromPhoto).mockResolvedValueOnce({ status: "unavailable", reason: "no edges detected" });
+  it("the OCR 'save anyway' override cannot bypass a simultaneous face-check-failed block", async () => {
+    vi.mocked(runFaceCheck).mockResolvedValueOnce({ status: "check_failed", faceCount: 0, reason: "model timed out" });
     const reviewImpl = vi.fn(async () => ({ legibility: null, accuracy: null }));
 
     render(<TestHarness reviewImpl={reviewImpl} />);
@@ -240,7 +217,8 @@ describe("FinishView", () => {
     await selectFile(fileInput);
 
     // OCR also mismatches by default (see the module mock above) — the
-    // override link still renders, but must be a no-op while crop is blocked.
+    // override link still renders, but must be a no-op while the face check
+    // is blocked.
     const overrideLink = await screen.findByText("It is the right page — save anyway");
     await userEvent.click(overrideLink);
 

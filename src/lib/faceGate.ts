@@ -35,9 +35,9 @@ declare global {
 let detectorPromise: Promise<FaceDetector> | null = null;
 
 /**
- * Kicks off the MediaPipe WASM + model download early (same reasoning as
- * src/lib/pageCrop.ts's prewarmPageCropLibs — do the one-time network/init
- * cost while the user is still taking their photo, not at Save time).
+ * Kicks off the MediaPipe WASM + model download early — do the one-time
+ * network/init cost while the user is still taking their photo, not at
+ * Save time.
  */
 export function prewarmFaceDetector(): void {
   getDetector().catch(() => {});
@@ -70,9 +70,9 @@ export type FaceGateResult = {
 
 export async function runFaceCheck(photoDataUrl: string): Promise<FaceGateResult> {
   try {
-    // Same reasoning as pageCrop.ts's extractPageFromPhoto: don't let a slow
-    // first-time model/WASM load (if prewarmFaceDetector() hasn't finished)
-    // hang this photo — it keeps loading in the background regardless.
+    // Don't let a slow first-time model/WASM load (if prewarmFaceDetector()
+    // hasn't finished) hang this photo — it keeps loading in the background
+    // regardless.
     const detector = await Promise.race([
       getDetector(),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
