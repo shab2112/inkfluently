@@ -56,16 +56,23 @@ export function ReviewResults({
           <div className="text-xs mt-1.5" style={{ color: "var(--ink-soft)" }}>
             {record.legibility.feedback || "No specific notes this time."}
           </div>
-          <ul className="flex flex-col gap-1 mt-2">
+          <ul className="flex flex-col gap-1.5 mt-2">
             {record.legibility.dimensions.map((d) => (
-              <li key={d.name} className="flex items-center justify-between gap-2 text-xs">
-                <span style={{ color: "var(--ink-soft)" }}>{d.label}</span>
-                <span
-                  className="rounded-full px-2 py-0.5 font-bold"
-                  style={d.flag === "good" ? { background: "var(--good-soft)", color: "var(--good)" } : { background: "var(--gold-soft)", color: "var(--gold)" }}
-                >
-                  {d.flag === "good" ? "good" : "needs work"}
-                </span>
+              <li key={d.name} className="text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span style={{ color: "var(--ink-soft)" }}>{d.label}</span>
+                  <span
+                    className="rounded-full px-2 py-0.5 font-bold flex-none"
+                    style={d.flag === "good" ? { background: "var(--good-soft)", color: "var(--good)" } : { background: "var(--gold-soft)", color: "var(--gold)" }}
+                  >
+                    {d.flag === "good" ? "good" : "needs work"}
+                  </span>
+                </div>
+                {d.flag === "needs_work" && d.note && (
+                  <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
+                    {d.note}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
