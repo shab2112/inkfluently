@@ -1,4 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+/* Playwrite: TypeTogether's "Primarium" research typeface modeling how
+   children are actually taught to form letters in real primary-school
+   curricula (40+ countries studied) — used as the "how it's taught" reference
+   in the letter-formation progress section, not a stylistic cursive font. */
+@import url("https://fonts.googleapis.com/css2?family=Playwrite+US+Modern&family=Playwrite+US+Modern+Guides&display=swap");
 @import "tailwindcss";
 
 :root {

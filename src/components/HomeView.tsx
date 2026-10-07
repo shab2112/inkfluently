@@ -30,6 +30,7 @@ export function HomeView({
   onStart,
   onOpenDashboard,
   onOpenProgress,
+  onOpenPatterns,
 }: {
   settings: Settings;
   setSettings: (s: Settings | ((prev: Settings) => Settings)) => void;
@@ -52,6 +53,7 @@ export function HomeView({
   onStart: () => void;
   onOpenDashboard: () => void;
   onOpenProgress: () => void;
+  onOpenPatterns: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -109,6 +111,14 @@ export function HomeView({
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
         >
           🖼️ Before &amp; after
+        </button>
+        <button
+          type="button"
+          onClick={onOpenPatterns}
+          className="rounded-full border px-3.5 py-2 text-sm font-semibold"
+          style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
+        >
+          🔁 Letter progress
         </button>
       </div>
 

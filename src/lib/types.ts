@@ -11,6 +11,15 @@ export type LegibilityDimension = {
   label: string;
   flag: DimensionFlag;
   note?: string;
+  // Stable, from-a-fixed-vocabulary identifier for the SPECIFIC recurring
+  // issue (e.g. "a-o", "word-crowding") — distinct from `note`, which is free
+  // text and too inconsistently worded run-to-run to tally across sessions.
+  // See DIMENSION_TAGS in gemini.ts for the vocabulary each dimension can use.
+  tag?: string;
+  // The specific word from this session's passage that best demonstrates the
+  // issue, so the user's own photo can be captioned with exactly where to
+  // look rather than just a generic score.
+  exampleWord?: string;
 };
 
 export type LegibilityReview = {

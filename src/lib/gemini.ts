@@ -1,4 +1,5 @@
 import type { AccuracyReview, LegibilityReview } from "./types";
+import { DIMENSION_TAGS } from "./letterPatterns";
 
 // Server-only: never import this from a "use client" component. The API key
 // must never reach the browser bundle.
@@ -10,6 +11,15 @@ const DIMENSION_NAMES = [
   "baseline",
   "slant",
 ] as const;
+
+const TAG_VALUES = new Set(Object.values(DIMENSION_TAGS).flatMap((tags) => tags.map((t) => t.tag)));
+
+function tagVocabularyBlock(): string {
+  return DIMENSION_NAMES.map((dim) => {
+    const tags = DIMENSION_TAGS[dim].map((t) => `"${t.tag}"`).join(", ");
+    return `   - ${dim}: ${tags}`;
+  }).join("\n");
+}
 
 function buildReviewPrompt(passageText: string, userAge: number | null): string {
   const ageClause = userAge
@@ -34,6 +44,14 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     '   For each dimension give a flag of exactly "good" or "needs_work", and when it\'s "needs_work" a short, ' +
     'specific, concrete note (e.g. "height varies noticeably between words") — omit the note when "good". ' +
     "Also give one overall 1-5 score and one short overall encouraging sentence.\n" +
+    "   When a dimension is \"needs_work\", ALSO pick exactly one `tag` from this fixed list for that specific " +
+    "dimension (reuse the SAME tag every time you see the same specific issue — this is what lets the app track " +
+    "whether a specific mistake is recurring across sessions, so don't invent new wording, pick from the list; " +
+    "use \"other\" only if truly none of the rest fit):\n" +
+    tagVocabularyBlock() +
+    "\n   Also give an `example_word` — the single word from the passage above where this issue is clearest in " +
+    "the photo (so the app can show the user exactly where to look). Omit tag/example_word when the flag is " +
+    "\"good\".\n" +
     "2. ACCURACY — transcribe what they actually wrote as best you can, then compare it word-for-word to the " +
     "passage above. List concrete differences: misspelled words, missing words/phrases, extra words, and " +
     "punctuation or capitalization mistakes. If the handwriting is too unclear to transcribe reliably in " +
@@ -48,11 +66,11 @@ function buildReviewPrompt(passageText: string, userAge: number | null): string 
     "simultaneously listing several accuracy errors that came from hard-to-read letters — that is a contradiction.\n\n" +
     "Reply with ONLY a JSON object of this exact shape:\n" +
     '{"legibility": {"score": <integer 1-5, 5=very easy to read>, "feedback": "<one short encouraging sentence>", ' +
-    '"dimensions": [{"name":"letter_formation","label":"Letter formation","flag":"good"|"needs_work","note":"<string, omit or empty when good>"}, ' +
-    '{"name":"size_consistency","label":"Size consistency","flag":"good"|"needs_work","note":"<...>"}, ' +
-    '{"name":"spacing","label":"Spacing","flag":"good"|"needs_work","note":"<...>"}, ' +
-    '{"name":"baseline","label":"Baseline","flag":"good"|"needs_work","note":"<...>"}, ' +
-    '{"name":"slant","label":"Slant","flag":"good"|"needs_work","note":"<...>"}]}, ' +
+    '"dimensions": [{"name":"letter_formation","label":"Letter formation","flag":"good"|"needs_work","note":"<string, omit or empty when good>","tag":"<from the list above, omit when good>","example_word":"<word from the passage, omit when good>"}, ' +
+    '{"name":"size_consistency","label":"Size consistency","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
+    '{"name":"spacing","label":"Spacing","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
+    '{"name":"baseline","label":"Baseline","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}, ' +
+    '{"name":"slant","label":"Slant","flag":"good"|"needs_work","note":"<...>","tag":"<...>","example_word":"<...>"}]}, ' +
     '"accuracy": {"score": <integer 1-5, 5=matches perfectly>, ' +
     '"errors": [{"type": "spelling"|"punctuation"|"missing"|"extra", "expected": "<correct text>", "found": "<what they wrote, or empty if missing>"}], ' +
     '"summary": "<one encouraging sentence naming the main thing to work on>"}}'
@@ -181,12 +199,20 @@ export async function reviewHandwritingPhoto(
             DIMENSION_NAMES.includes(d.name as (typeof DIMENSION_NAMES)[number]) &&
             (d.flag === "good" || d.flag === "needs_work")
         )
-        .map((d) => ({
-          name: String(d.name),
-          label: String(d.label || d.name),
-          flag: d.flag as "good" | "needs_work",
-          note: String(d.note || "").trim() || undefined,
-        }))
+        .map((d) => {
+          const rawTag = typeof d.tag === "string" ? d.tag : undefined;
+          return {
+            name: String(d.name),
+            label: String(d.label || d.name),
+            flag: d.flag as "good" | "needs_work",
+            note: String(d.note || "").trim() || undefined,
+            // Guard against the model inventing a tag outside the fixed
+            // vocabulary — an off-list tag would never match anything else
+            // and would silently break cross-session aggregation.
+            tag: rawTag && TAG_VALUES.has(rawTag) ? rawTag : undefined,
+            exampleWord: String(d.example_word || "").trim() || undefined,
+          };
+        })
     : [];
 
   const legibility: LegibilityReview | null =

@@ -12,9 +12,10 @@ import { PracticeView, type FinishDraft } from "@/components/PracticeView";
 import { FinishView } from "@/components/FinishView";
 import { DashboardView } from "@/components/DashboardView";
 import { ProgressView } from "@/components/ProgressView";
+import { LetterProgress } from "@/components/LetterProgress";
 import { SessionDetail } from "@/components/SessionDetail";
 
-type View = "home" | "practice" | "finish" | "dashboard" | "progress";
+type View = "home" | "practice" | "finish" | "dashboard" | "progress" | "patterns";
 
 export type Settings = {
   name: string;
@@ -169,6 +170,7 @@ export default function InkfluentlyApp() {
           onStart={() => setView("practice")}
           onOpenDashboard={() => setView("dashboard")}
           onOpenProgress={() => setView("progress")}
+          onOpenPatterns={() => setView("patterns")}
         />
       )}
       {view === "practice" && (
@@ -202,6 +204,7 @@ export default function InkfluentlyApp() {
       )}
       {view === "dashboard" && <DashboardView history={history} onClose={() => setView("home")} />}
       {view === "progress" && <ProgressView history={history} onClose={() => setView("home")} />}
+      {view === "patterns" && <LetterProgress history={history} onClose={() => setView("home")} />}
       {viewingSession &&
         (() => {
           const viewingRecord = history.find((h) => h.date === viewingSession.date && h.seq === viewingSession.seq);
