@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { lsGet, lsSet, isLocalStorageAvailable } from "@/lib/storage";
 import { PASSAGES, PASSAGE_SKILL_FOR_DIM, pickPassage, passageSkillTag } from "@/lib/passages";
 import { computeStreak, computeWeeklyFocus } from "@/lib/history";
+import { dataUrlToFile } from "@/lib/pageCrop";
 import { useVoice } from "@/lib/useVoice";
 import type { Passage, SessionRecord } from "@/lib/types";
 import { HomeView } from "@/components/HomeView";
@@ -102,6 +103,43 @@ export default function InkfluentlyApp() {
     setHistory((h) => h.filter((x) => !(x.date === date && x.seq === seq)));
   }, []);
 
+  // Owned here, not by FinishView, specifically so the review survives the
+  // user navigating away mid-review — this component never unmounts while
+  // the app is open, unlike whichever screen happened to trigger the save.
+  const triggerReview = useCallback(
+    async (target: { date: string; seq: number }, photoFile: File, passageText: string) => {
+      const mark = (patch: Partial<SessionRecord>) =>
+        setHistory((h) => h.map((x) => (x.date === target.date && x.seq === target.seq ? { ...x, ...patch } : x)));
+
+      mark({ reviewStatus: "pending", reviewError: undefined });
+      try {
+        const form = new FormData();
+        form.append("photo", photoFile);
+        form.append("passageText", passageText);
+        if (settings.userAge) form.append("userAge", String(settings.userAge));
+        const res = await fetch("/api/review", { method: "POST", body: form });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.message || `Review failed (${json?.code || res.status})`);
+        mark({ legibility: json.legibility, accuracy: json.accuracy, reviewStatus: "done" });
+      } catch (err) {
+        mark({ reviewStatus: "failed", reviewError: err instanceof Error ? err.message : "Unknown error" });
+      }
+    },
+    [settings.userAge]
+  );
+
+  // For retrying from anywhere other than the Finish screen (e.g. the Home
+  // log), the original File object is long gone — only the saved photo's
+  // data URL remains — so rebuild a File from it.
+  const retryReviewFromRecord = useCallback(
+    async (record: SessionRecord) => {
+      if (!record.photo) return;
+      const file = await dataUrlToFile(record.photo.src, "retry-photo.jpg");
+      await triggerReview({ date: record.date, seq: record.seq }, file, record.passageText);
+    },
+    [triggerReview]
+  );
+
   if (!mounted) return null;
 
   return (
@@ -112,6 +150,7 @@ export default function InkfluentlyApp() {
           setSettings={setSettings}
           history={history}
           onDeleteSession={deleteSession}
+          onRetryReview={retryReviewFromRecord}
           streak={streak}
           weeklyFocus={weeklyFocus}
           currentPassage={currentPassage}
@@ -146,11 +185,12 @@ export default function InkfluentlyApp() {
       {view === "finish" && finishDraft && (
         <FinishView
           draft={finishDraft}
-          settings={settings}
+          history={history}
           todaySeqBase={history.filter((h) => h.date === finishDraft.date).length}
           onUpsert={(record) => {
             setHistory((h) => [...h.filter((x) => !(x.date === record.date && x.seq === record.seq)), record]);
           }}
+          onTriggerReview={triggerReview}
           onBackToLog={() => {
             setFinishDraft(null);
             setView("home");

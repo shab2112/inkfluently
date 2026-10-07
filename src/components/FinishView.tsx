@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Settings } from "@/components/InkfluentlyApp";
 import type { FinishDraft } from "@/components/PracticeView";
 import { computeWpm } from "@/lib/history";
 import type { SessionRecord } from "@/lib/types";
@@ -16,33 +15,41 @@ function fmtClock(totalSec: number): string {
   return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
-type ReviewState =
-  | { status: "idle" }
-  | { status: "loading"; startedAt: number }
-  | { status: "done" }
-  | { status: "error"; message: string };
-
 export function FinishView({
   draft,
-  settings,
+  history,
   todaySeqBase,
   onUpsert,
+  onTriggerReview,
   onBackToLog,
 }: {
   draft: FinishDraft;
-  settings: Settings;
+  history: SessionRecord[];
   todaySeqBase: number;
   onUpsert: (record: SessionRecord) => void;
+  onTriggerReview: (target: { date: string; seq: number }, photoFile: File, passageText: string) => Promise<void>;
   onBackToLog: () => void;
 }) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
-  const [record, setRecord] = useState<SessionRecord | null>(null);
-  const [review, setReview] = useState<ReviewState>({ status: "idle" });
+  const [savedSeq, setSavedSeq] = useState<number | null>(null);
+  const [reviewStartedAt, setReviewStartedAt] = useState<number | null>(null);
   const [reviewSeconds, setReviewSeconds] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // The review itself is owned by the always-mounted root component (see
+  // InkfluentlyApp's triggerReview) specifically so it survives navigating
+  // away from this screen — this just reads the live result back out of the
+  // shared history as it updates, rather than tracking its own copy.
+  const currentRecord = history.find((h) => h.date === draft.date && h.seq === savedSeq);
+
+  useEffect(() => {
+    if (currentRecord?.reviewStatus !== "pending" || reviewStartedAt == null) return;
+    const tick = setInterval(() => setReviewSeconds(Math.round((Date.now() - reviewStartedAt) / 1000)), 1000);
+    return () => clearInterval(tick);
+  }, [currentRecord?.reviewStatus, reviewStartedAt]);
 
   // Three-step client-side pipeline before anything leaves the device, in
   // order: (1) crop the photo down to just the page — a data-minimization step,
@@ -128,31 +135,11 @@ export function FinishView({
   const ocrWarning = gateStatus === "done" && ocrResult?.status === "no_match" && !overrideOcrWarning;
   const canSave = !!photoPreview && gateStatus === "done" && !faceBlocked && !ocrWarning;
 
-  async function runReview(baseRecord: SessionRecord) {
+  function startReview(target: { date: string; seq: number }) {
     if (!photoFile) return;
-    const startedAt = Date.now();
-    setReview({ status: "loading", startedAt });
-    const tick = setInterval(() => setReviewSeconds(Math.round((Date.now() - startedAt) / 1000)), 1000);
-
-    try {
-      const form = new FormData();
-      form.append("photo", photoFile);
-      form.append("passageText", draft.passageText);
-      if (settings.userAge) form.append("userAge", String(settings.userAge));
-      const res = await fetch("/api/review", { method: "POST", body: form });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.message || `Review failed (${json?.code || res.status})`);
-      }
-      const updated: SessionRecord = { ...baseRecord, legibility: json.legibility, accuracy: json.accuracy };
-      setRecord(updated);
-      onUpsert(updated);
-      setReview({ status: "done" });
-    } catch (err) {
-      setReview({ status: "error", message: err instanceof Error ? err.message : "Unknown error" });
-    } finally {
-      clearInterval(tick);
-    }
+    setReviewStartedAt(Date.now());
+    setReviewSeconds(0);
+    onTriggerReview(target, photoFile, draft.passageText);
   }
 
   async function handleSave() {
@@ -170,11 +157,12 @@ export function FinishView({
       legibility: null,
       accuracy: null,
       synced: false,
+      reviewStatus: "pending",
     };
-    setRecord(baseRecord);
     onUpsert(baseRecord);
+    setSavedSeq(seq);
     setSaved(true);
-    await runReview(baseRecord);
+    startReview({ date: draft.date, seq });
   }
 
   return (
@@ -361,23 +349,25 @@ export function FinishView({
             )}
 
             <div className="w-full text-left rounded-xl border px-3.5 py-3" style={{ background: "var(--paper)", borderColor: "var(--rule)" }}>
-              {review.status === "loading" && (
+              {currentRecord?.reviewStatus === "pending" && (
                 <>
                   <div className="text-sm font-bold">Reading the handwriting…</div>
                   <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
-                    This can take a minute or two — please keep this page open ({reviewSeconds}s)…
+                    This can take a minute or two ({reviewSeconds}s)… but you don&apos;t have to wait here — head
+                    back to the log now and we&apos;ll keep checking in the background. It&apos;ll show up there as
+                    soon as it&apos;s ready.
                   </div>
                 </>
               )}
-              {review.status === "error" && (
+              {currentRecord?.reviewStatus === "failed" && (
                 <>
                   <div className="text-sm font-bold">Review unavailable</div>
                   <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
-                    {review.message} — the session and photo are still saved.
+                    {currentRecord.reviewError} — the session and photo are still saved.
                   </div>
                   <button
                     type="button"
-                    onClick={() => record && runReview(record)}
+                    onClick={() => currentRecord && startReview({ date: currentRecord.date, seq: currentRecord.seq })}
                     className="text-xs font-semibold underline mt-2"
                     style={{ color: "var(--accent)" }}
                   >
@@ -385,22 +375,22 @@ export function FinishView({
                   </button>
                 </>
               )}
-              {review.status === "done" && record?.legibility && (
+              {currentRecord?.reviewStatus === "done" && currentRecord.legibility && (
                 <>
                   <div className="flex items-center gap-2 text-sm font-bold">
                     <span
                       className="font-mono-ink rounded-full px-2.5 py-0.5 text-xs"
                       style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
                     >
-                      {record.legibility.score}/5
+                      {currentRecord.legibility.score}/5
                     </span>
                     Legibility
                   </div>
                   <div className="text-xs mt-1.5" style={{ color: "var(--ink-soft)" }}>
-                    {record.legibility.feedback || "No specific notes this time."}
+                    {currentRecord.legibility.feedback || "No specific notes this time."}
                   </div>
                   <ul className="flex flex-col gap-1 mt-2">
-                    {record.legibility.dimensions.map((d) => (
+                    {currentRecord.legibility.dimensions.map((d) => (
                       <li key={d.name} className="flex items-center justify-between gap-2 text-xs">
                         <span style={{ color: "var(--ink-soft)" }}>{d.label}</span>
                         <span
@@ -417,23 +407,23 @@ export function FinishView({
                     ))}
                   </ul>
 
-                  {record.accuracy && (
+                  {currentRecord.accuracy && (
                     <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--rule)" }}>
                       <div className="flex items-center gap-2 text-xs font-bold" style={{ color: "var(--ink-soft)" }}>
                         <span
                           className="font-mono-ink rounded-full px-2 py-0.5"
                           style={{ background: "var(--good-soft)", color: "var(--good)" }}
                         >
-                          {record.accuracy.score}/5
+                          {currentRecord.accuracy.score}/5
                         </span>
                         Accuracy (secondary)
                       </div>
                       <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                        {record.accuracy.summary}
+                        {currentRecord.accuracy.summary}
                       </div>
-                      {record.accuracy.errors.length > 0 && (
+                      {currentRecord.accuracy.errors.length > 0 && (
                         <ul className="flex flex-col gap-1 mt-2">
-                          {record.accuracy.errors.map((e, i) => (
+                          {currentRecord.accuracy.errors.map((e, i) => (
                             <li
                               key={i}
                               className="text-[11px] rounded-lg px-2 py-1.5"

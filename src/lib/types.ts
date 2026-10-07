@@ -38,6 +38,12 @@ export type PhotoRef = {
   src: string; // data URL (local) or storage URL (remote)
 };
 
+// "pending"/"failed" let the review run independent of any screen staying
+// mounted (see src/components/InkfluentlyApp.tsx's triggerReview) — the user
+// can navigate away and back, or close the gap between sessions, and the log
+// still shows accurate status instead of silently losing track of it.
+export type ReviewStatus = "pending" | "done" | "failed";
+
 export type SessionRecord = {
   date: string; // YYYY-MM-DD
   seq: number; // which session that day (1-based)
@@ -51,6 +57,8 @@ export type SessionRecord = {
   legibility: LegibilityReview | null;
   accuracy: AccuracyReview | null;
   synced: boolean;
+  reviewStatus?: ReviewStatus; // absent = pre-existing record from before this field existed
+  reviewError?: string;
 };
 
 export type WeeklyFocus = {

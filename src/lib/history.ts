@@ -1,5 +1,13 @@
 import { dateStrOffset, todayStr } from "./dates";
-import type { SessionRecord, WeeklyFocus } from "./types";
+import type { ReviewStatus, SessionRecord, WeeklyFocus } from "./types";
+
+/** Records saved before `reviewStatus` existed don't have it set — infer from
+ * whether legibility ever landed, so old sessions don't show as permanently
+ * "pending". */
+export function displayReviewStatus(record: SessionRecord): ReviewStatus {
+  if (record.reviewStatus) return record.reviewStatus;
+  return record.legibility ? "done" : "failed";
+}
 
 export function computeStreak(history: SessionRecord[]): { current: number; best: number } {
   const doneDates: Record<string, boolean> = {};

@@ -5,6 +5,7 @@ import type { Settings } from "@/components/InkfluentlyApp";
 import type { SessionRecord, WeeklyFocus, Passage, PassageSkill } from "@/lib/types";
 import { SKILL_NAMES } from "@/lib/passages";
 import { dateStrOffset } from "@/lib/dates";
+import { displayReviewStatus } from "@/lib/history";
 import type { useVoice } from "@/lib/useVoice";
 
 export function HomeView({
@@ -12,6 +13,7 @@ export function HomeView({
   setSettings,
   history,
   onDeleteSession,
+  onRetryReview,
   streak,
   weeklyFocus,
   currentPassage,
@@ -32,6 +34,7 @@ export function HomeView({
   setSettings: (s: Settings | ((prev: Settings) => Settings)) => void;
   history: SessionRecord[];
   onDeleteSession: (date: string, seq: number) => void;
+  onRetryReview: (record: SessionRecord) => void;
   streak: { current: number; best: number };
   weeklyFocus: WeeklyFocus | null;
   currentPassage: Passage;
@@ -299,6 +302,21 @@ export function HomeView({
                   <div className="text-xs truncate" style={{ color: "var(--ink-soft)" }}>
                     {h.topic} {h.wpm ? `· ${h.wpm} wpm` : ""} {h.legibility?.score ? `· legible ${h.legibility.score}/5` : ""}
                   </div>
+                  {displayReviewStatus(h) === "pending" && (
+                    <div className="text-[11px] mt-0.5 font-semibold" style={{ color: "var(--gold)" }}>
+                      ⏳ Reviewing… check back in a bit
+                    </div>
+                  )}
+                  {displayReviewStatus(h) === "failed" && (
+                    <button
+                      type="button"
+                      onClick={() => onRetryReview(h)}
+                      className="text-[11px] mt-0.5 font-semibold underline"
+                      style={{ color: "var(--danger)" }}
+                    >
+                      ⚠️ Review failed — tap to retry
+                    </button>
+                  )}
                 </div>
                 {confirmDelete === key ? (
                   <div className="flex items-center gap-1.5">

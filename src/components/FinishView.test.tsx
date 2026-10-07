@@ -1,10 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { FinishView } from "./FinishView";
 import type { FinishDraft } from "./PracticeView";
-import type { Settings } from "./InkfluentlyApp";
+import type { SessionRecord } from "@/lib/types";
 
 // These three touch real browser-only CV libraries (CDN WASM loads, canvas,
 // tesseract workers) that don't run in jsdom and are already covered by
@@ -40,17 +41,61 @@ const draft: FinishDraft = {
   topic: "Test topic",
   passageText: "This is the test passage text.",
 };
-const settings: Settings = {
-  name: "",
-  targetMin: 12,
-  punct: false,
-  userAge: 16,
-  sessionsPerDayTarget: 1,
-};
 
 function selectFile(input: HTMLElement) {
   const file = new File(["fake-image-bytes"], "photo.jpg", { type: "image/jpeg" });
   return userEvent.upload(input, file);
+}
+
+/**
+ * Minimal stand-in for InkfluentlyApp: owns `history` and implements
+ * onUpsert/onTriggerReview the same way the real root component does, so
+ * FinishView's reactive `currentRecord` derivation (the whole point of this
+ * refactor — review state lives in the always-mounted root, not in this
+ * screen) is exercised the same way it is in the real app, not reimplemented
+ * as a simpler fake.
+ */
+function TestHarness({
+  reviewImpl,
+  onBackToLog = vi.fn(),
+}: {
+  reviewImpl: (target: { date: string; seq: number }, photoFile: File, passageText: string) => Promise<{ legibility: unknown; accuracy: unknown }>;
+  onBackToLog?: () => void;
+}) {
+  const [history, setHistory] = useState<SessionRecord[]>([]);
+
+  async function onTriggerReview(target: { date: string; seq: number }, photoFile: File, passageText: string) {
+    setHistory((h) => h.map((x) => (x.date === target.date && x.seq === target.seq ? { ...x, reviewStatus: "pending" } : x)));
+    try {
+      const result = await reviewImpl(target, photoFile, passageText);
+      setHistory((h) =>
+        h.map((x) =>
+          x.date === target.date && x.seq === target.seq
+            ? { ...x, legibility: result.legibility as SessionRecord["legibility"], accuracy: result.accuracy as SessionRecord["accuracy"], reviewStatus: "done" }
+            : x
+        )
+      );
+    } catch (err) {
+      setHistory((h) =>
+        h.map((x) =>
+          x.date === target.date && x.seq === target.seq
+            ? { ...x, reviewStatus: "failed", reviewError: err instanceof Error ? err.message : "Unknown error" }
+            : x
+        )
+      );
+    }
+  }
+
+  return (
+    <FinishView
+      draft={draft}
+      history={history}
+      todaySeqBase={0}
+      onUpsert={(record) => setHistory((h) => [...h.filter((x) => !(x.date === record.date && x.seq === record.seq)), record])}
+      onTriggerReview={onTriggerReview}
+      onBackToLog={onBackToLog}
+    />
+  );
 }
 
 describe("FinishView", () => {
@@ -63,15 +108,9 @@ describe("FinishView", () => {
   });
 
   it('"save anyway" on the OCR warning actually saves (regression test for the bug where it only dismissed the warning)', async () => {
-    const onUpsert = vi.fn();
-    const onBackToLog = vi.fn();
-    global.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ legibility: null, accuracy: null }), { status: 200 })
-    ) as unknown as typeof fetch;
+    const reviewImpl = vi.fn(async () => ({ legibility: null, accuracy: null }));
 
-    render(
-      <FinishView draft={draft} settings={settings} todaySeqBase={0} onUpsert={onUpsert} onBackToLog={onBackToLog} />
-    );
+    render(<TestHarness reviewImpl={reviewImpl} />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLElement;
     await selectFile(fileInput);
@@ -80,30 +119,21 @@ describe("FinishView", () => {
     await userEvent.click(overrideLink);
 
     await waitFor(() => expect(screen.getByText("Saved!")).toBeInTheDocument());
-    expect(onUpsert).toHaveBeenCalled();
+    expect(reviewImpl).toHaveBeenCalled();
   });
 
   it('"Retry review" re-runs the review call and shows the result on success', async () => {
-    const onUpsert = vi.fn();
-    const onBackToLog = vi.fn();
     let callCount = 0;
-    global.fetch = vi.fn(async () => {
+    const reviewImpl = vi.fn(async () => {
       callCount++;
-      if (callCount === 1) {
-        return new Response(JSON.stringify({ code: "upstream_error", message: "simulated failure" }), { status: 502 });
-      }
-      return new Response(
-        JSON.stringify({
-          legibility: { score: 4, feedback: "Good", dimensions: [] },
-          accuracy: { score: 4, errors: [], summary: "Good" },
-        }),
-        { status: 200 }
-      );
-    }) as unknown as typeof fetch;
+      if (callCount === 1) throw new Error("simulated failure");
+      return {
+        legibility: { score: 4, feedback: "Good", dimensions: [] },
+        accuracy: { score: 4, errors: [], summary: "Good" },
+      };
+    });
 
-    render(
-      <FinishView draft={draft} settings={settings} todaySeqBase={0} onUpsert={onUpsert} onBackToLog={onBackToLog} />
-    );
+    render(<TestHarness reviewImpl={reviewImpl} />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLElement;
     await selectFile(fileInput);
@@ -119,5 +149,39 @@ describe("FinishView", () => {
 
     await waitFor(() => expect(screen.getByText("Legibility")).toBeInTheDocument());
     expect(callCount).toBe(2);
+  });
+
+  it("review survives this screen unmounting (the actual bug being fixed) — triggering review does not depend on FinishView staying mounted", async () => {
+    let resolveReview!: (v: { legibility: unknown; accuracy: unknown }) => void;
+    const reviewImpl = vi.fn(
+      () =>
+        new Promise<{ legibility: unknown; accuracy: unknown }>((resolve) => {
+          resolveReview = resolve;
+        })
+    );
+
+    const { unmount } = render(<TestHarness reviewImpl={reviewImpl} />);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLElement;
+    await selectFile(fileInput);
+    const overrideLink = await screen.findByText("It is the right page — save anyway");
+    await userEvent.click(overrideLink);
+
+    await waitFor(() => expect(reviewImpl).toHaveBeenCalled());
+
+    // Simulate navigating away: unmount the Finish screen entirely while the
+    // review is still in flight. Before this refactor, the fetch lived inside
+    // FinishView's own closure — this proves it no longer matters.
+    unmount();
+
+    resolveReview({
+      legibility: { score: 5, feedback: "Great", dimensions: [] },
+      accuracy: { score: 5, errors: [], summary: "Great" },
+    });
+
+    // The promise's .then() continuation should still run and not throw, even
+    // though the component that originally triggered it is gone.
+    await new Promise((r) => setTimeout(r, 10));
+    expect(reviewImpl).toHaveBeenCalledTimes(1);
   });
 });
