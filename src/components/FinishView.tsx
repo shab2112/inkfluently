@@ -8,6 +8,7 @@ import { runOcrPhraseMatch, type OcrGateResult } from "@/lib/ocrGate";
 import { runFaceCheck, prewarmFaceDetector, type FaceGateResult } from "@/lib/faceGate";
 import { extractPageFromPhoto, prewarmPageCropLibs, dataUrlToFile } from "@/lib/pageCrop";
 import { downscaleDataUrl } from "@/lib/imageResize";
+import { ReviewResults } from "@/components/ReviewResults";
 
 function fmtClock(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -348,118 +349,13 @@ export function FinishView({
               </div>
             )}
 
-            <div className="w-full text-left rounded-xl border px-3.5 py-3" style={{ background: "var(--paper)", borderColor: "var(--rule)" }}>
-              {currentRecord?.reviewStatus === "pending" && (
-                <>
-                  <div className="text-sm font-bold">Reading the handwriting…</div>
-                  <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
-                    This can take a minute or two ({reviewSeconds}s)… but you don&apos;t have to wait here — head
-                    back to the log now and we&apos;ll keep checking in the background. It&apos;ll show up there as
-                    soon as it&apos;s ready.
-                  </div>
-                </>
-              )}
-              {currentRecord?.reviewStatus === "failed" && (
-                <>
-                  <div className="text-sm font-bold">Review unavailable</div>
-                  <div className="text-xs mt-1" style={{ color: "var(--ink-soft)" }}>
-                    {currentRecord.reviewError} — the session and photo are still saved.
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => currentRecord && startReview({ date: currentRecord.date, seq: currentRecord.seq })}
-                    className="text-xs font-semibold underline mt-2"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    Retry review
-                  </button>
-                </>
-              )}
-              {currentRecord?.reviewStatus === "done" && currentRecord.legibility && (
-                <>
-                  <div className="flex items-center gap-2 text-sm font-bold">
-                    <span
-                      className="font-mono-ink rounded-full px-2.5 py-0.5 text-xs"
-                      style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
-                    >
-                      {currentRecord.legibility.score}/5
-                    </span>
-                    Legibility
-                  </div>
-                  <div className="text-xs mt-1.5" style={{ color: "var(--ink-soft)" }}>
-                    {currentRecord.legibility.feedback || "No specific notes this time."}
-                  </div>
-                  <ul className="flex flex-col gap-1 mt-2">
-                    {currentRecord.legibility.dimensions.map((d) => (
-                      <li key={d.name} className="flex items-center justify-between gap-2 text-xs">
-                        <span style={{ color: "var(--ink-soft)" }}>{d.label}</span>
-                        <span
-                          className="rounded-full px-2 py-0.5 font-bold"
-                          style={
-                            d.flag === "good"
-                              ? { background: "var(--good-soft)", color: "var(--good)" }
-                              : { background: "var(--gold-soft)", color: "var(--gold)" }
-                          }
-                        >
-                          {d.flag === "good" ? "good" : "needs work"}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {currentRecord.accuracy && (
-                    <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--rule)" }}>
-                      <div className="flex items-center gap-2 text-xs font-bold" style={{ color: "var(--ink-soft)" }}>
-                        <span
-                          className="font-mono-ink rounded-full px-2 py-0.5"
-                          style={{ background: "var(--good-soft)", color: "var(--good)" }}
-                        >
-                          {currentRecord.accuracy.score}/5
-                        </span>
-                        Accuracy (secondary)
-                      </div>
-                      <div className="text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
-                        {currentRecord.accuracy.summary}
-                      </div>
-                      {currentRecord.accuracy.errors.length > 0 && (
-                        <ul className="flex flex-col gap-1 mt-2">
-                          {currentRecord.accuracy.errors.map((e, i) => (
-                            <li
-                              key={i}
-                              className="text-[11px] rounded-lg px-2 py-1.5"
-                              style={{ background: "var(--paper-2)" }}
-                            >
-                              <span
-                                className="text-[9.5px] font-bold uppercase tracking-wide mr-1.5"
-                                style={{ color: "var(--ink-faint)" }}
-                              >
-                                {e.type}
-                              </span>
-                              {e.type === "missing" ? (
-                                <span>
-                                  missing &quot;<b>{e.expected}</b>&quot;
-                                </span>
-                              ) : e.type === "extra" ? (
-                                <span>
-                                  extra &quot;<b>{e.found}</b>&quot; (not in passage)
-                                </span>
-                              ) : (
-                                <span>
-                                  &quot;{e.found}&quot; → should be &quot;<b>{e.expected}</b>&quot;
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                  <div className="text-[11px] mt-2.5" style={{ color: "var(--ink-faint)" }}>
-                    Scores vary a little session to session — read the trend over time, not any single score.
-                  </div>
-                </>
-              )}
-            </div>
+            {currentRecord && (
+              <ReviewResults
+                record={currentRecord}
+                reviewSeconds={reviewSeconds}
+                onRetry={() => startReview({ date: currentRecord.date, seq: currentRecord.seq })}
+              />
+            )}
 
             <button
               type="button"

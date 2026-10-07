@@ -12,6 +12,7 @@ import { PracticeView, type FinishDraft } from "@/components/PracticeView";
 import { FinishView } from "@/components/FinishView";
 import { DashboardView } from "@/components/DashboardView";
 import { ProgressView } from "@/components/ProgressView";
+import { SessionDetail } from "@/components/SessionDetail";
 
 type View = "home" | "practice" | "finish" | "dashboard" | "progress";
 
@@ -42,6 +43,7 @@ export default function InkfluentlyApp() {
   const [customText, setCustomText] = useState("");
   const [storageWarning, setStorageWarning] = useState(false);
   const [finishDraft, setFinishDraft] = useState<FinishDraft | null>(null);
+  const [viewingSession, setViewingSession] = useState<{ date: string; seq: number } | null>(null);
   const voice = useVoice();
 
   // ---- Hydrate from localStorage on mount (client-only, avoids SSR mismatch) ----
@@ -151,6 +153,7 @@ export default function InkfluentlyApp() {
           history={history}
           onDeleteSession={deleteSession}
           onRetryReview={retryReviewFromRecord}
+          onViewSession={(record) => setViewingSession({ date: record.date, seq: record.seq })}
           streak={streak}
           weeklyFocus={weeklyFocus}
           currentPassage={currentPassage}
@@ -199,6 +202,18 @@ export default function InkfluentlyApp() {
       )}
       {view === "dashboard" && <DashboardView history={history} onClose={() => setView("home")} />}
       {view === "progress" && <ProgressView history={history} onClose={() => setView("home")} />}
+      {viewingSession &&
+        (() => {
+          const viewingRecord = history.find((h) => h.date === viewingSession.date && h.seq === viewingSession.seq);
+          if (!viewingRecord) return null;
+          return (
+            <SessionDetail
+              record={viewingRecord}
+              onRetry={() => retryReviewFromRecord(viewingRecord)}
+              onClose={() => setViewingSession(null)}
+            />
+          );
+        })()}
     </div>
   );
 }

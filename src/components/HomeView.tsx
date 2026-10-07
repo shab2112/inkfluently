@@ -14,6 +14,7 @@ export function HomeView({
   history,
   onDeleteSession,
   onRetryReview,
+  onViewSession,
   streak,
   weeklyFocus,
   currentPassage,
@@ -35,6 +36,7 @@ export function HomeView({
   history: SessionRecord[];
   onDeleteSession: (date: string, seq: number) => void;
   onRetryReview: (record: SessionRecord) => void;
+  onViewSession: (record: SessionRecord) => void;
   streak: { current: number; best: number };
   weeklyFocus: WeeklyFocus | null;
   currentPassage: Passage;
@@ -299,7 +301,13 @@ export function HomeView({
             return (
               <div
                 key={key}
-                className="flex items-center gap-3 p-2.5 rounded-xl border"
+                role="button"
+                tabIndex={0}
+                onClick={() => onViewSession(h)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onViewSession(h);
+                }}
+                className="flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer"
                 style={{ background: "var(--paper)", borderColor: "var(--rule)" }}
               >
                 {h.photo ? (
@@ -325,7 +333,10 @@ export function HomeView({
                   {displayReviewStatus(h) === "failed" && (
                     <button
                       type="button"
-                      onClick={() => onRetryReview(h)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRetryReview(h);
+                      }}
                       className="text-[11px] mt-0.5 font-semibold underline"
                       style={{ color: "var(--danger)" }}
                     >
@@ -334,7 +345,7 @@ export function HomeView({
                   )}
                 </div>
                 {confirmDelete === key ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       className="text-xs font-bold rounded-md border px-2 py-1"
@@ -361,7 +372,10 @@ export function HomeView({
                     aria-label="Delete session"
                     className="text-base px-1.5 py-1 rounded-md flex-none"
                     style={{ color: "var(--ink-faint)" }}
-                    onClick={() => setConfirmDelete(key)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmDelete(key);
+                    }}
                   >
                     ✕
                   </button>
